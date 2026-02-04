@@ -35,8 +35,10 @@
     *   *Demonstrates the seamless fusion of LLM intent parsing with `@mysten/dapp-kit` execution.*
 
 ### 6. (Optional) Deployment or Integration Proof
-*   **Live IPFS Deployment:** [https://gateway.pinata.cloud/ipfs/Qmc8DPHmWRemktooBbGHgRjt8Gw9NvpuG1rvaouBu1N1Dn](https://gateway.pinata.cloud/ipfs/Qmc8DPHmWRemktooBbGHgRjt8Gw9NvpuG1rvaouBu1N1Dn)
-    *   *Note: Successfully deployed to Pinata via `ipfs-deploy`.*
+*   **Live IPFS Deployment:**
+    *   **Primary**: [https://ipfs.io/ipfs/QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i](https://ipfs.io/ipfs/QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i)
+    *   **Backup (Pinata CDN)**: [https://indigo-broad-boa-752.mypinata.cloud/ipfs/QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i](https://indigo-broad-boa-752.mypinata.cloud/ipfs/QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i)
+    *   *CID: `QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i` (Accessible via any IPFS gateway)*
 *   **Feature Matrix (Current State):**
     *   ✅ **DONE:** AI Intent Engine, Portfolio Dashboard, Liquid Staking, Auto-Agent (x402).
     *   🚧 **DOING:** RWA Tokenization (UI Ready, Contracts WIP).

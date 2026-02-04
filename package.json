@@ -37,6 +37,8 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
     "firebase": "^11.0.0",
+    "globby": "^16.1.0",
+    "ipfs-http-client": "^60.0.1",
     "pinata-web3": "^0.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
