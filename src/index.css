@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Sui Blue / Dark Navy Theme */
+    background-color: #0d1117; 
+    color: #e6edf3;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background-color: rgba(13, 17, 23, 0.8);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(56, 189, 248, 0.3); /* Sky/Cyan tint */
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(56, 189, 248, 0.5);
+  }
+
+  /* Sui Blue Gradients */
+  .bg-sui-gradient {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  }
+  
+  .bg-sui-card {
+    background: rgba(22, 27, 34, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(48, 54, 61, 0.5);
+  }
+
+  .text-sui-blue {
+    color: #4da2ff;
+  }
+
+  /* Glassmorphism */
+  .glass-panel {
+    background: rgba(13, 17, 23, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Glow Effects - Refined for "Water" feel */
+  .glow-sui {
+    box-shadow: 0 0 20px rgba(77, 162, 255, 0.15), 0 0 40px rgba(77, 162, 255, 0.05);
+  }
+
+  /* Animations */
+  @keyframes float-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+
+  .animate-float {
+    animation: float-subtle 6s ease-in-out infinite;
+  }
+}
