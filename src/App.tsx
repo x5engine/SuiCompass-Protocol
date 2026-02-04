@@ -48,12 +48,14 @@ function DebugPanelToggle() {
 }
 
 import SidePanel from './components/ui/SidePanel'
+import ParticleBackground from './components/ui/ParticleBackground'
 
 function App() {
   return (
     <NotificationProvider>
       <WalletProvider autoConnect={true}>
-        <div className="flex h-screen overflow-hidden">
+        <ParticleBackground />
+        <div className="flex h-screen overflow-hidden relative z-10">
           <div className="flex-1 relative">
             <ChatInterface />
             <DebugPanelToggle />

@@ -10,6 +10,8 @@ import { useAutoStakeAgent } from '../../hooks/useAutoStakeAgent'
 import AutoStakeSettings from './AutoStakeSettings'
 import { showNotification } from '../ui/Notification'
 import Tooltip from '../ui/Tooltip'
+import { playSound } from '../../utils/sound-effects'
+import confetti from 'canvas-confetti'
 
 export default function AutoStakeToggle() {
   const { isConnected, publicKey } = useWallet()
@@ -23,20 +25,24 @@ export default function AutoStakeToggle() {
   const handleToggle = () => {
     const newEnabled = !enabled
     updateSettings({ enabled: newEnabled })
-    
+
     if (newEnabled) {
+      playSound('success')
+      confetti({ particleCount: 30, spread: 50, origin: { x: 0.9, y: 0.1 } })
       setStatus('monitoring')
       showNotification({
         type: 'success',
-        title: 'Auto-Stake Agent Enabled',
-        message: 'Agent is now monitoring your balance for staking opportunities',
+        title: '🤖 Agent Activated',
+        message: 'I am now watching your metrics.',
+        sound: 'epic'
       })
     } else {
+      playSound('click')
       setStatus('idle')
       showNotification({
         type: 'info',
-        title: 'Auto-Stake Agent Disabled',
-        message: 'Agent monitoring has been stopped',
+        title: 'Agent Sleeping',
+        message: 'Monitoring paused.',
       })
     }
   }
@@ -92,16 +98,15 @@ export default function AutoStakeToggle() {
             <button
               onClick={handleToggle}
               className={[
-                'w-12 h-12 rounded-full flex items-center justify-center text-xl',
-                'border transition-all duration-200 hover:scale-110 active:scale-95',
+                'w-14 h-14 rounded-full flex items-center justify-center text-2xl',
+                'border-2 transition-all duration-300 hover:scale-110 active:scale-95',
                 enabled
-                  ? 'bg-gradient-to-br from-cyan-500/20 to-teal-500/20 border-cyan-500/50 shadow-lg shadow-cyan-500/20'
-                  : 'bg-slate-800/50 border-slate-700/50',
-                status === 'ready' && 'animate-pulse ring-2 ring-cyan-500/40',
+                  ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.6)] animate-pulse-slow'
+                  : 'bg-slate-800 border-slate-600 grayscale opacity-80 hover:opacity-100 hover:grayscale-0',
               ].join(' ')}
               aria-label={enabled ? 'Disable Auto-Stake Agent' : 'Enable Auto-Stake Agent'}
             >
-              {enabled ? '🤖' : '⚙️'}
+              {enabled ? '🤖' : '💀'}
             </button>
           </Tooltip>
 

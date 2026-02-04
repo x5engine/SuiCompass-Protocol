@@ -12,12 +12,28 @@ interface Message {
   timestamp: Date
 }
 
+import { playSound } from '../../utils/sound-effects'
+import confetti from 'canvas-confetti'
+
 export default function ChatInterface() {
   const { publicKey, isConnected, connect, signAndExecute } = useWallet()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showDashboard, setShowDashboard] = useState(false)
+  const [balance, setBalance] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isConnected && publicKey) {
+      playSound('success')
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } })
+
+      // Fetch balance
+      suiClient.getAccountBalance(publicKey).then(bal => {
+        setBalance((Number(bal) / 1e9).toFixed(2))
+      })
+    }
+  }, [isConnected, publicKey])
 
   // Auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -136,7 +152,9 @@ export default function ChatInterface() {
             <div className="flex items-center gap-3">
               <div className="text-3xl">🧭</div>
               <div>
-                <h1 className="text-xl font-bold text-slate-100 tracking-tight">SuiCompass</h1>
+                <h1 className="text-xl font-bold text-slate-100 tracking-tight flex items-center gap-2">
+                  SuiCompass <span className="text-xs bg-cyan-900/50 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800">BETA</span>
+                </h1>
                 <p className="text-xs text-slate-400">AI-Powered DeFi Assistant</p>
               </div>
             </div>
@@ -150,8 +168,17 @@ export default function ChatInterface() {
               </button>
 
               {isConnected ? (
-                <div className="px-4 py-2 bg-slate-800 rounded-lg text-slate-300 text-sm font-mono border border-slate-700">
-                  {publicKey?.slice(0, 6)}...{publicKey?.slice(-4)}
+                <div className="flex items-center gap-3">
+                  {balance && (
+                    <div className="hidden md:flex flex-col items-end mr-2">
+                      <span className="text-xs text-slate-400">Balance</span>
+                      <span className="text-sm font-bold text-white font-mono">{balance} SUI</span>
+                    </div>
+                  )}
+                  <div className="px-4 py-2 bg-slate-800/80 backdrop-blur rounded-lg text-slate-300 text-sm font-mono border border-slate-700 shadow-lg shadow-cyan-900/20">
+                    <span className="mr-2 text-cyan-500">●</span>
+                    {publicKey?.slice(0, 6)}...{publicKey?.slice(-4)}
+                  </div>
                 </div>
               ) : (
                 /* We rely on WalletProvider internal modal or this button triggering it */
