@@ -5,6 +5,7 @@
 
 import { aiRiskAuditService } from './ai-risk-audit'
 import { pinataService } from './ipfs-pinata'
+import { Transaction } from '@mysten/sui/transactions';
 import type { RWAMetadata, TokenizationRequest, TokenizationResult, RiskAuditResult } from '../types/rwa-audit'
 
 export class RWATokenizationService {
@@ -117,6 +118,35 @@ export class RWATokenizationService {
         // tokenId and contractHash will be set after contract deployment
       },
     }
+  }
+
+  /**
+   * Create transaction to mint RWA NFT
+   */
+  async mintRWA(
+    packageId: string, // The on-chain package ID
+    metadata: RWAMetadata,
+    ipfsHash: string
+  ): Promise<Transaction> {
+    const tx = new Transaction();
+
+    // Construct IPFS URL
+    const url = `ipfs://${ipfsHash}`;
+
+    tx.moveCall({
+      target: `${packageId}::rwa_nft::mint`,
+      arguments: [
+        tx.pure.string(metadata.assetType + " - " + metadata.amount.toString()), // Name
+        tx.pure.string(metadata.description || "RWA Tokenized Asset"), // Description
+        tx.pure.string(url), // URL
+        tx.pure.string(metadata.amount.toString()), // Amount
+        tx.pure.string(metadata.currency), // Currency
+        tx.pure.string(metadata.dueDate), // Due Date
+        tx.pure.string(metadata.issuer), // Issuer
+      ],
+    });
+
+    return tx;
   }
 
   /**

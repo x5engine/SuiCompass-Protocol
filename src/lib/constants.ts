@@ -1,4 +1,4 @@
-export const CASPER_NETWORK = import.meta.env.VITE_CASPER_NETWORK || 'sui-test'
+export const CASPER_NETWORK = import.meta.env.VITE_CASPER_NETWORK || 'sui'
 
 export const SUI_TO_MOTES = BigInt(1000000000) // 1 SUI = 1,000,000,000 MIST
 

@@ -111,7 +111,7 @@ export default function ChatInterface() {
         try {
           const result = await signAndExecute({ transactionBlock: tx })
           addMessage('assistant', `✅ Staking successful! Digest: ${result.digest}`)
-          addMessage('assistant', `View on Explorer: https://suiscan.xyz/testnet/tx/${result.digest}`)
+          addMessage('assistant', `View on Explorer: https://suiscan.xyz/mainnet/tx/${result.digest}`)
         } catch (err: any) {
           addMessage('assistant', `❌ Transaction failed: ${err.message}`)
         }

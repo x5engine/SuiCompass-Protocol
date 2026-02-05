@@ -47,3 +47,10 @@ coverage/.tmp
 # SUI docs mirror (crawl output)
 docs-sui/mirror/
 
+# Sui CLI binaries (large files, should be installed locally)
+bin/
+
+# Move build artifacts
+sui_rwa/build/
+**/build/
+*.tgz

@@ -14,7 +14,7 @@ import type { TokenizationRequest, RiskAuditResult, TokenizationResult } from '.
 type Step = 'upload' | 'metadata' | 'audit' | 'tokenize' | 'success'
 
 export default function RWATokenization() {
-  const { publicKey, isConnected } = useWallet()
+  const { publicKey, isConnected, signAndExecute } = useWallet()
   const [step, setStep] = useState<Step>('upload')
   const [loading, setLoading] = useState(false)
   const [documentFile, setDocumentFile] = useState<File | null>(null)
@@ -111,15 +111,56 @@ export default function RWATokenization() {
     }
   }
 
-  const handleProceedToTokenize = () => {
-    // TODO: Deploy CEP-78 contract and mint token
-    // For now, show success
-    setStep('success')
-    showNotification({
-      type: 'info',
-      title: 'Contract Deployment',
-      message: 'Contract deployment will be implemented in next phase',
-    })
+  const handleProceedToTokenize = async () => {
+    if (!tokenizationResult?.ipfsHash || !auditResult) return;
+
+    // TODO: Replace with actual deployed package ID after mainnet deployment
+    // Users can also input this or we fetch it from config
+    const PACKAGE_ID = import.meta.env.VITE_RWA_PACKAGE_ID || '0x0';
+
+    if (PACKAGE_ID === '0x0') {
+      showNotification({
+        type: 'error',
+        title: 'Configuration Error',
+        message: 'RWA Package ID not set. Please deploy contract first.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const tx = await rwaTokenizationService.mintRWA(
+        PACKAGE_ID,
+        {
+          ...metadata,
+          amount: parseFloat(metadata.amount),
+          documentHash: tokenizationResult.ipfsHash,
+          riskScore: auditResult.riskScore,
+          createdAt: new Date().toISOString(),
+          status: 'pending'
+        },
+        tokenizationResult.ipfsHash
+      );
+
+      const result = await signAndExecute({ transactionBlock: tx });
+
+      setStep('success');
+      showNotification({
+        type: 'success',
+        title: 'RWA Minted!',
+        message: `Asset tokenized successfully. Digest: ${result.digest}`,
+      });
+
+    } catch (error) {
+      console.error("Minting failed", error);
+      showNotification({
+        type: 'error',
+        title: 'Minting Failed',
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   const handleReset = () => {
@@ -157,23 +198,21 @@ export default function RWATokenization() {
         {['upload', 'metadata', 'audit', 'tokenize', 'success'].map((s, index) => (
           <div key={s} className="flex items-center">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                step === s
-                  ? 'bg-cyan-500 text-white'
-                  : ['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step === s
+                ? 'bg-cyan-500 text-white'
+                : ['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
                   ? 'bg-green-500 text-white'
                   : 'bg-slate-700 text-slate-400'
-              }`}
+                }`}
             >
               {index + 1}
             </div>
             {index < 4 && (
               <div
-                className={`w-12 h-0.5 ${
-                  ['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
-                    ? 'bg-green-500'
-                    : 'bg-slate-700'
-                }`}
+                className={`w-12 h-0.5 ${['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
+                  ? 'bg-green-500'
+                  : 'bg-slate-700'
+                  }`}
               />
             )}
           </div>

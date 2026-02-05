@@ -3,7 +3,7 @@ import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
 export class SuiNetworkClient {
     public client: SuiClient;
 
-    constructor(network: string = 'testnet') {
+    constructor(network: string = 'mainnet') {
         // Map to valid Sui networks or use custom URL
         const rpcUrl = import.meta.env.VITE_SUI_RPC_URL || getFullnodeUrl(network as any);
 
@@ -82,5 +82,5 @@ export class SuiNetworkClient {
 
 // Export singleton
 export const suiClient = new SuiNetworkClient(
-    (import.meta.env.VITE_SUI_NETWORK as string) || 'testnet'
+    (import.meta.env.VITE_SUI_NETWORK as string) || 'mainnet'
 );

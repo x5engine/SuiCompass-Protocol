@@ -78,7 +78,7 @@ export default function ContractDeployer() {
     const request: DeploymentRequest = {
       templateId: selectedTemplate.id,
       parameters,
-      chainName: 'casper-test',
+      chainName: 'sui-mainnet',
     }
 
     const result = await deployContract(request)
@@ -116,23 +116,21 @@ export default function ContractDeployer() {
         {['select', 'configure', 'deploy', 'status'].map((s, index) => (
           <div key={s} className="flex items-center">
             <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                step === s
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step === s
                   ? 'bg-cyan-500 text-white'
                   : ['select', 'configure', 'deploy', 'status'].indexOf(step) > index
-                  ? 'bg-green-500 text-white'
-                  : 'bg-slate-700 text-slate-400'
-              }`}
+                    ? 'bg-green-500 text-white'
+                    : 'bg-slate-700 text-slate-400'
+                }`}
             >
               {index + 1}
             </div>
             {index < 3 && (
               <div
-                className={`w-12 h-0.5 ${
-                  ['select', 'configure', 'deploy', 'status'].indexOf(step) > index
+                className={`w-12 h-0.5 ${['select', 'configure', 'deploy', 'status'].indexOf(step) > index
                     ? 'bg-green-500'
                     : 'bg-slate-700'
-                }`}
+                  }`}
               />
             )}
           </div>

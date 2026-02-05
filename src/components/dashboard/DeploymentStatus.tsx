@@ -77,7 +77,7 @@ export default function DeploymentStatus({ deploymentResult, onComplete }: Deplo
                 {deploymentResult.transactionHash}
               </code>
               <a
-                href={`https://testnet.cspr.live/transaction/${deploymentResult.transactionHash}`}
+                href={`https://suiscan.xyz/mainnet/tx/${deploymentResult.transactionHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-cyan-400 hover:text-cyan-300"
@@ -98,7 +98,7 @@ export default function DeploymentStatus({ deploymentResult, onComplete }: Deplo
             <div>
               <div className="text-sm text-slate-400 mb-1">Estimated Gas</div>
               <div className="text-slate-200">
-                {(deploymentResult.estimatedGas / 1e9).toFixed(4)} CSPR
+                {(deploymentResult.estimatedGas / 1e9).toFixed(4)} SUI
               </div>
             </div>
           )}
