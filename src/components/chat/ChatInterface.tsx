@@ -107,7 +107,8 @@ export default function ChatInterface() {
         addMessage('assistant', `Preparing to stake ${amountSUI} SUI...`)
 
         let validator = intentResult.entities?.validator
-        if (!validator) {
+        // If validator is missing or 'maxYield', find the best one
+        if (!validator || validator.toLowerCase() === 'maxyield') {
           addMessage('assistant', '🔍 Finding best validator...')
           validator = await findBestValidator()
         }
