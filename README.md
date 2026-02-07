@@ -3,43 +3,45 @@
 > **Production-Ready RWA Tokenization Platform on Sui Blockchain**
 
 [![Live on Mainnet](https://img.shields.io/badge/Sui-Mainnet-4DA2FF?style=for-the-badge&logo=sui&logoColor=white)](https://suiscan.xyz/mainnet)
-[![Website](https://img.shields.io/badge/Visit-suicompass.com-00C853?style=for-the-badge)](https://suicompass.com)
+[![Live Demo](https://img.shields.io/badge/Live-IPFS-cyan)](https://ipfs.io/ipfs/QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 **🌐 Live Platform**: [suicompass.com](https://suicompass.com)
 
-SuiCompass is an institutional-grade platform for tokenizing real-world assets (invoices, bills, receivables) on the Sui blockchain. Built with AI-powered risk assessment, programmable transaction blocks (PTBs), and a modern React interface.
+SuiCompass transforms natural language into executable Sui transactions. Stake, manage portfolios, and tokenize real-world assets (invoices, bills, receivables)—all through an institutional-grade interface with a premium "Sui Blue" aesthetic.
 
 ---
 
 ## 🚀 Key Features
 
 ### 💎 **RWA Tokenization** (Live on Mainnet)
-- **AI Risk Auditing**: Automated fraud detection and authenticity verification
-- **IPFS Storage**: Decentralized document storage via Pinata
-- **On-Chain Lifecycle**: Track asset status (Pending → Paid → Settled)
-- **Smart Contract**: Fully tested Move package with comprehensive getters/setters
+- **AI Risk Auditing**: Automated fraud detection and authenticity verification.
+- **IPFS Storage**: Decentralized document storage via Pinata.
+- **Move Contract**: `rwa_registry.move` for Real Estate, Invoices, and Bonds.
+- **On-Chain Lifecycle**: Track asset status (Pending → Paid → Settled).
 
 ### 🤖 **AI Copilot**
-- Natural language blockchain interactions
-- Intent parsing for staking, transfers, and portfolio queries
-- Powered by advanced LLMs with Sui-specific training
+- **Natural Language DeFi**: Type "Stake 50 SUI" → Transaction executed.
+- **Context-Aware**: Smart suggestions based on your portfolio.
+- **Risk Analysis**: AI-powered transaction safety checks.
 
 ### 📊 **Portfolio Dashboard**
-- Real-time balance tracking
-- Transaction history with Mainnet explorer links
-- Gas optimization insights
-- Multi-validator staking management
-
-### 📈 **Token Graph Visualization**
-- Interactive D3.js network graphs
-- Asset relationship mapping
-- Portfolio composition analysis
+- **Real-time Tracking**: Live balance and staking positions via Sui RPC.
+- **Token Graph**: Interactive D3.js network graphs for asset relationship mapping.
+- **Sound & VFX**: Immersive "Sui Blue" theme with particle effects and audio feedback.
 
 ### 🔐 **Liquid Staking**
-- Auto-staking agent with validator selection
-- APY optimization
-- Instant unstaking support
+- **Auto-Agent**: Autonomous yield optimization (x402 Auto-Agent).
+- **Validator Selection**: Smart selection for optimized APY.
+
+### 💻 **CLI Tool**
+```bash
+# Stake SUI via terminal
+sui-compass stake --amount 10 --validator 0x...
+
+# Check portfolio
+sui-compass portfolio --address 0x...
+```
 
 ---
 
@@ -61,7 +63,7 @@ SuiCompass is an institutional-grade platform for tokenizing real-world assets (
         ┌───────────────────┼───────────────────┐
         ▼                   ▼                   ▼
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│ Sui System   │  │  RWA NFT     │  │  IPFS/Pinata │
+│ Sui System   │  │  RWA Registry │  │  IPFS/Pinata │
 │  (Native)    │  │  Contract    │  │   Storage    │
 └──────────────┘  └──────────────┘  └──────────────┘
 ```
@@ -73,21 +75,21 @@ SuiCompass is an institutional-grade platform for tokenizing real-world assets (
 | Layer | Technology |
 |-------|-----------|
 | **Blockchain** | Sui Mainnet |
-| **Smart Contracts** | Move Language |
+| **Smart Contracts** | Move Language (`contracts/`) |
 | **Frontend** | React 19, TypeScript, Vite |
 | **Wallet Integration** | @mysten/dapp-kit |
 | **Storage** | IPFS (Pinata) |
-| **AI/ML** | OpenAI GPT-4, Custom Risk Models |
-| **Styling** | Tailwind CSS |
-| **State Management** | Zustand |
-| **Testing** | Vitest, Move Test Framework |
+| **AI/ML** | EmbedAPI (Intent Parsing), Custom Risk Models |
+| **Styling** | Tailwind CSS (Sui Blue Theme) |
+| **Visualization** | D3.js |
+| **CLI** | Node.js (packages/sui-compass-cli) |
 
 ---
 
 ## 📦 Quick Start
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+
 - Sui CLI (for contract deployment)
 - Sui Wallet (browser extension)
 
@@ -95,162 +97,74 @@ SuiCompass is an institutional-grade platform for tokenizing real-world assets (
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/SuiCompass-Protocol.git
+git clone https://github.com/x5engine/SuiCompass-Protocol.git
 cd SuiCompass-Protocol
 
 # Install dependencies
 npm install
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
-```
-
-### Environment Variables
-
-```bash
-VITE_SUI_NETWORK=mainnet
-VITE_EMBED_API_KEY=your_api_key_here
-VITE_RWA_PACKAGE_ID=0x...  # After contract deployment
-```
-
-### Development
-
-```bash
 # Start development server
 npm run dev
-
-# Run tests
-npm test
-
-# Build for production
-npm run build
 ```
 
+### Environment Setup
+
+Create `.env`:
+
+```env
+# AI Engine (Required)
+VITE_EMBEDAPI_KEY=your_embedapi_key
+
+# Sui Network
+VITE_SUI_NETWORK=mainnet
+VITE_SUI_RPC_URL=https://fullnode.mainnet.sui.io:443
+
+# RWA Contract (After deployment)
+VITE_RWA_PACKAGE_ID=0x...
+```
+
+---
+
+## 🧪 Testing & Deployment
+
 ### Smart Contract Deployment
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
-
-**Quick Deploy:**
 ```bash
-cd sui_rwa
+cd contracts
 sui client publish --gas-budget 100000000
 ```
 
-**Estimated Cost**: ~0.016 SUI (~$0.05 USD)
-
----
-
-## 🧪 Testing
-
-### Frontend Tests
+### Running Tests
 ```bash
+# Frontend
 npm test
-```
 
-**Coverage**: 5/5 integration tests passing
-- Request validation
-- Risk audit guardrails
-- Transaction construction
-- Error handling
-
-### Smart Contract Tests
-```bash
-cd sui_rwa
+# Smart Contracts
+cd contracts
 sui move test
 ```
-
-**Coverage**: Full lifecycle testing
-- Minting with data integrity checks
-- Status transitions (Pending → Paid → Overdue)
-- Burn functionality
-- Getter verification
-
----
-
-## 📚 Documentation
-
-- **[Deployment Guide](./DEPLOYMENT.md)**: Step-by-step contract deployment
-- **[Feature Matrix](./FEATURE_MATRIX.md)**: Complete feature breakdown
-- **[API Documentation](./docs/)**: Service layer reference
-
----
-
-## 🔒 Security
-
-- ✅ **Audited Smart Contracts**: Comprehensive test coverage
-- ✅ **AI Risk Assessment**: Fraud detection for RWA minting
-- ✅ **Ownership Enforcement**: Native Sui object ownership
-- ✅ **Immutable Packages**: Deployed contracts cannot be modified
-- ✅ **No Private Key Storage**: Wallet-based authentication only
-
-**Bug Bounty**: Contact security@suicompass.com for responsible disclosure.
 
 ---
 
 ## 🌟 Roadmap
 
-- [x] Mainnet Launch
-- [x] RWA Tokenization (Live)
-- [x] AI Risk Auditing
-- [ ] Multi-chain Bridge Support
-- [ ] DAO Governance
-- [ ] Mobile App (iOS/Android)
-- [ ] Institutional API
+- [x] Phase 1: Core Sui integration
+- [x] Phase 2: AI Intent Engine
+- [x] Phase 3: x402 Auto-Agent
+- [x] Phase 4: RWA Tokenization (Live on Mainnet)
+- [x] Phase 5: CLI Tool
+- [ ] Phase 6: Multi-chain Bridge Support
+- [ ] Phase 7: Mobile App (iOS/Android)
 
 ---
 
-## 🤝 Contributing
+## 👨‍💻 Author
 
-We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+**Youssef Khouidi** ([@x5engine](https://github.com/x5engine))
 
-```bash
-# Fork the repo
-# Create a feature branch
-git checkout -b feature/amazing-feature
-
-# Commit your changes
-git commit -m 'Add amazing feature'
-
-# Push and create a PR
-git push origin feature/amazing-feature
-```
+Built with ❤️ for the Sui ecosystem.
 
 ---
 
 ## 📄 License
 
 This project is licensed under the MIT License - see [LICENSE](./LICENSE) file for details.
-
----
-
-## 🔗 Links
-
-- **Website**: [suicompass.com](https://suicompass.com)
-- **Explorer**: [SuiScan](https://suiscan.xyz/mainnet)
-- **Twitter**: [@SuiCompass](https://twitter.com/suicompass)
-- **Discord**: [Join Community](https://discord.gg/suicompass)
-- **Documentation**: [docs.suicompass.com](https://docs.suicompass.com)
-
----
-
-## 💼 For Investors
-
-SuiCompass Protocol represents the next generation of DeFi infrastructure, bringing real-world assets on-chain with institutional-grade security and compliance.
-
-**Key Metrics**:
-- 🎯 Production-ready smart contracts on Sui Mainnet
-- 🧪 100% test coverage (5/5 integration tests passing)
-- 🤖 AI-powered risk assessment (90%+ accuracy)
-- 💰 Ultra-low deployment costs (~$0.05)
-- 🚀 Scalable architecture (Sui's 297k TPS capability)
-
-**Contact**: investors@suicompass.com
-
----
-
-<p align="center">
-  <strong>Built with ❤️ on Sui Blockchain</strong>
-  <br>
-  <sub>Empowering the future of decentralized finance</sub>
-</p>

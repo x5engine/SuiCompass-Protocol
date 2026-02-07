@@ -1,4 +1,4 @@
-# 📅 February Monthly Submission: SuiCompass Protocol
+# 📅 February Week 2-6 Submission: SuiCompass Protocol
 
 ### 1. Primary GitHub Repository
 **URL:** [https://github.com/x5engine/SuiCompass-Protocol](https://github.com/x5engine/SuiCompass-Protocol)

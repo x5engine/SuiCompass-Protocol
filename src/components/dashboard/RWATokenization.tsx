@@ -23,7 +23,7 @@ export default function RWATokenization() {
     assetType: 'invoice' as const,
     issuer: publicKey || '',
     amount: '',
-    currency: 'CSPR',
+    currency: 'USD',
     dueDate: '',
     description: '',
   })
@@ -114,8 +114,7 @@ export default function RWATokenization() {
   const handleProceedToTokenize = async () => {
     if (!tokenizationResult?.ipfsHash || !auditResult) return;
 
-    // TODO: Replace with actual deployed package ID after mainnet deployment
-    // Users can also input this or we fetch it from config
+    // Use the package ID from environment or default
     const PACKAGE_ID = import.meta.env.VITE_RWA_PACKAGE_ID || '0x0';
 
     if (PACKAGE_ID === '0x0') {
@@ -129,6 +128,7 @@ export default function RWATokenization() {
 
     setLoading(true);
     try {
+      // We'll use the rwaTokenizationService which we will update to target the new registry
       const tx = await rwaTokenizationService.mintRWA(
         PACKAGE_ID,
         {
@@ -148,7 +148,7 @@ export default function RWATokenization() {
       showNotification({
         type: 'success',
         title: 'RWA Minted!',
-        message: `Asset tokenized successfully. Digest: ${result.digest}`,
+        message: `Asset tokenized successfully on Sui. Digest: ${result.digest}`,
       });
 
     } catch (error) {
@@ -171,7 +171,7 @@ export default function RWATokenization() {
       assetType: 'invoice',
       issuer: publicKey,
       amount: '',
-      currency: 'CSPR',
+      currency: 'USD',
       dueDate: '',
       description: '',
     })
@@ -199,10 +199,10 @@ export default function RWATokenization() {
           <div key={s} className="flex items-center">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${step === s
-                ? 'bg-cyan-500 text-white'
-                : ['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
-                  ? 'bg-green-500 text-white'
-                  : 'bg-slate-700 text-slate-400'
+                  ? 'bg-cyan-500 text-white'
+                  : ['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
+                    ? 'bg-green-500 text-white'
+                    : 'bg-slate-700 text-slate-400'
                 }`}
             >
               {index + 1}
@@ -210,8 +210,8 @@ export default function RWATokenization() {
             {index < 4 && (
               <div
                 className={`w-12 h-0.5 ${['upload', 'metadata', 'audit', 'tokenize', 'success'].indexOf(step) > index
-                  ? 'bg-green-500'
-                  : 'bg-slate-700'
+                    ? 'bg-green-500'
+                    : 'bg-slate-700'
                   }`}
               />
             )}
@@ -284,9 +284,9 @@ export default function RWATokenization() {
                   onChange={(e) => setMetadata({ ...metadata, currency: e.target.value })}
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 >
-                  <option value="CSPR">CSPR</option>
                   <option value="USD">USD</option>
                   <option value="EUR">EUR</option>
+                  <option value="SUI">SUI</option>
                 </select>
               </div>
             </div>
@@ -340,9 +340,9 @@ export default function RWATokenization() {
       {step === 'success' && tokenizationResult && (
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-6 text-center">
           <div className="text-6xl mb-4">✅</div>
-          <div className="text-2xl font-bold text-slate-100 mb-2">Tokenization Ready!</div>
+          <div className="text-2xl font-bold text-slate-100 mb-2">RWA Tokenized!</div>
           <div className="text-slate-400 mb-6">
-            Asset metadata has been prepared and uploaded to IPFS
+            Asset metadata has been prepared and the token has been minted on Sui.
           </div>
           {tokenizationResult.ipfsHash && (
             <div className="bg-slate-900/50 rounded-lg p-4 mb-4">
@@ -360,12 +360,14 @@ export default function RWATokenization() {
               </a>
             </div>
           )}
-          <div className="text-sm text-slate-500">
-            Contract deployment will be available in the next phase
-          </div>
+          <button
+            onClick={handleReset}
+            className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-200 transition-colors"
+          >
+            Tokenize Another Asset
+          </button>
         </div>
       )}
     </div>
   )
 }
-
