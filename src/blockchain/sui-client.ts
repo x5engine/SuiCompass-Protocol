@@ -28,18 +28,29 @@ export class SuiNetworkClient {
     }
 
     /**
-     * Get all active validators from the Sui System State.
+     * Get all active validators from the Sui System State with real APY.
      */
     async getActiveValidators() {
         try {
             const state = await this.client.getLatestSuiSystemState();
-            return state.activeValidators.map((v) => ({
-                public_key: v.suiAddress,
-                name: v.name,
-                stake: v.votingPower, // or stakingPoolSuiBalance
-                apy: (Number(v.nextEpochStake) / 1e9).toFixed(2) + "%", // Simplified placeholder
-                commission: v.commissionRate,
-            }));
+            const apys = await this.client.getValidatorsApy();
+
+            // Create a map of APYs for O(1) lookup
+            const apyMap = new Map(apys.apys.map(a => [a.address, a.apy]));
+
+            return state.activeValidators.map((v) => {
+                const apyVal = apyMap.get(v.suiAddress) || 0;
+                return {
+                    public_key: v.suiAddress,
+                    name: v.name,
+                    description: v.description,
+                    imageUrl: v.imageUrl,
+                    projectUrl: v.projectUrl,
+                    stake: v.stakingPoolSuiBalance,
+                    apy: (apyVal * 100).toFixed(2) + "%",
+                    commission: (Number(v.commissionRate) / 100).toFixed(2) + "%",
+                };
+            });
         } catch (error) {
             console.error('❌ Error getting validators:', error);
             return [];

@@ -131,8 +131,10 @@ export default function ChatInterface() {
           `💰 Available: ${(Number(balance) / 1e9).toFixed(2)} SUI\n` +
           `🔒 Staked: ${(Number(staking.stakedAmount) / 1e9).toFixed(2)} SUI\n` +
           `🎁 Pending Rewards: ${(Number(staking.pendingRewards) / 1e9).toFixed(4)} SUI`)
+      } else if (intentResult.intent === 'greeting') {
+         addMessage('assistant', intentResult.transactionData?.message || "Hello! I'm SuiCompass. I can help you stake SUI, check your portfolio, or tokenize real-world assets. What would you like to do today?");
       } else {
-        addMessage('assistant', `I understand you want to "${intentResult.intent}", but I can only handle Staking and Portfolio queries right now.`)
+        addMessage('assistant', `I understood your intent is "${intentResult.intent}", but I currently specialize in Staking, Portfolio management, and RWA Tokenization. Try asking me to "Stake 10 SUI" or "Check my balance".`)
       }
 
     } catch (error) {

@@ -10,12 +10,19 @@ module suicompass::rwa_registry {
     const ASSET_TYPE_INVOICE: u8 = 2;
     const ASSET_TYPE_BOND: u8 = 3;
 
+    /// RWA Status
+    const STATUS_PENDING: u8 = 1;
+    const STATUS_VERIFIED: u8 = 2;
+    const STATUS_PAID: u8 = 3;
+    const STATUS_DEFAULTED: u8 = 4;
+
     /// Error codes
     const E_INVALID_ASSET_TYPE: u64 = 0;
     const E_INVALID_VALUATION: u64 = 1;
+    const E_NOT_AUTHORIZED: u64 = 2;
 
-    /// RWA Token representing a real-world asset
-    struct RWAToken has key, store {
+    /// RWA NFT representing a real-world asset
+    struct RWANFT has key, store {
         id: UID,
         /// Asset type (1=Real Estate, 2=Invoice, 3=Bond)
         asset_type: u8,
@@ -29,6 +36,8 @@ module suicompass::rwa_registry {
         documentation_uri: String,
         /// Issuer/Originator address
         issuer: address,
+        /// Current status of the asset
+        status: u8,
         /// Timestamp of tokenization
         created_at: u64,
     }
@@ -42,7 +51,20 @@ module suicompass::rwa_registry {
         issuer: address,
     }
 
-    /// Mint a new Real Estate RWA token
+    /// Event emitted when status is updated
+    struct RWAStatusUpdated has copy, drop {
+        token_id: address,
+        old_status: u8,
+        new_status: u8,
+    }
+
+    /// Event emitted when RWA is burned
+    struct RWABurned has copy, drop {
+        token_id: address,
+        name: String,
+    }
+
+    /// Mint a new Real Estate RWA NFT
     public entry fun mint_real_estate(
         name: vector<u8>,
         location: vector<u8>,
@@ -60,7 +82,7 @@ module suicompass::rwa_registry {
         );
     }
 
-    /// Mint a new Invoice RWA token
+    /// Mint a new Invoice RWA NFT
     public entry fun mint_invoice(
         name: vector<u8>,
         location: vector<u8>,
@@ -78,7 +100,7 @@ module suicompass::rwa_registry {
         );
     }
 
-    /// Mint a new Bond RWA token
+    /// Mint a new Bond RWA NFT
     public entry fun mint_bond(
         name: vector<u8>,
         location: vector<u8>,
@@ -96,7 +118,7 @@ module suicompass::rwa_registry {
         );
     }
 
-    /// Internal function to mint RWA token
+    /// Internal function to mint RWA NFT
     fun mint_rwa(
         asset_type: u8,
         name: vector<u8>,
@@ -109,7 +131,7 @@ module suicompass::rwa_registry {
         assert!(valuation > 0, E_INVALID_VALUATION);
 
         let issuer = tx_context::sender(ctx);
-        let token = RWAToken {
+        let nft = RWANFT {
             id: object::new(ctx),
             asset_type,
             name: string::utf8(name),
@@ -117,38 +139,89 @@ module suicompass::rwa_registry {
             valuation,
             documentation_uri: string::utf8(documentation_uri),
             issuer,
+            status: STATUS_PENDING,
             created_at: tx_context::epoch(ctx),
         };
 
-        let token_id = object::uid_to_address(&token.id);
+        let token_id = object::uid_to_address(&nft.id);
 
         event::emit(RWAMinted {
             token_id,
             asset_type,
-            name: token.name,
+            name: nft.name,
             valuation,
             issuer,
         });
 
-        transfer::public_transfer(token, issuer);
+        transfer::public_transfer(nft, issuer);
     }
 
-    /// Transfer RWA token to another address
+    /// Transfer RWA NFT to another address
     public entry fun transfer_rwa(
-        token: RWAToken,
+        nft: RWANFT,
         recipient: address,
         _ctx: &mut TxContext
     ) {
-        transfer::public_transfer(token, recipient);
+        transfer::public_transfer(nft, recipient);
     }
 
-    /// Get asset type
-    public fun get_asset_type(token: &RWAToken): u8 {
-        token.asset_type
+    /// Update the status of the RWA NFT
+    /// Only the issuer can update the status (simple permission model for MVP)
+    public entry fun update_status(
+        nft: &mut RWANFT,
+        new_status: u8,
+        ctx: &mut TxContext
+    ) {
+        let sender = tx_context::sender(ctx);
+        assert!(sender == nft.issuer, E_NOT_AUTHORIZED);
+
+        let old_status = nft.status;
+        nft.status = new_status;
+
+        let token_id = object::uid_to_address(&nft.id);
+
+        event::emit(RWAStatusUpdated {
+            token_id,
+            old_status,
+            new_status,
+        });
     }
 
-    /// Get valuation
-    public fun get_valuation(token: &RWAToken): u64 {
-        token.valuation
+    /// Burn (destroy) the RWA NFT
+    public entry fun burn(nft: RWANFT, _ctx: &mut TxContext) {
+        let RWANFT {
+            id,
+            asset_type: _,
+            name,
+            location: _,
+            valuation: _,
+            documentation_uri: _,
+            issuer: _,
+            status: _,
+            created_at: _,
+        } = nft;
+
+        let token_id = object::uid_to_address(&id);
+
+        event::emit(RWABurned {
+            token_id,
+            name,
+        });
+
+        object::delete(id);
+    }
+
+    // --- Getters ---
+
+    public fun get_asset_type(nft: &RWANFT): u8 {
+        nft.asset_type
+    }
+
+    public fun get_valuation(nft: &RWANFT): u64 {
+        nft.valuation
+    }
+
+    public fun get_status(nft: &RWANFT): u8 {
+        nft.status
     }
 }

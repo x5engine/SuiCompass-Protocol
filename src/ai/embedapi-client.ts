@@ -27,7 +27,7 @@ const SUI_PROMPT_TEMPLATE = `You are a Sui Blockchain Specialist expert in DeFi 
 
 Parse the user's intent and extract the following information in JSON format:
 {
-  "intent": "stake|unstake|claim|transfer|portfolio|balance|status|query|auto_stake|deploy_contract|tokenize_rwa",
+  "intent": "stake|unstake|claim|transfer|portfolio|balance|status|query|auto_stake|deploy_contract|tokenize_rwa|greeting",
   "amount": number (in SUI - convert to MIST: amount * 1000000000),
   "validator": "validator public key/address or 'maxYield' for auto-select",
   "recipient": "Sui address (0x...) (if transfer)",
@@ -38,7 +38,8 @@ Parse the user's intent and extract the following information in JSON format:
   "contractParameters": object (if intent is deploy_contract),
   "rwaType": "invoice|bill|receivable|other" (if intent is tokenize_rwa),
   "rwaAmount": number (if intent is tokenize_rwa),
-  "rwaCurrency": "SUI|USD|EUR" (if intent is tokenize_rwa)
+  "rwaCurrency": "SUI|USD|EUR" (if intent is tokenize_rwa),
+  "message": "friendly greeting message" (if intent is greeting)
 }
 
 User input: {userInput}

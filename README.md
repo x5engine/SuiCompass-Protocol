@@ -3,7 +3,7 @@
 > **Production-Ready RWA Tokenization Platform on Sui Blockchain**
 
 [![Live on Mainnet](https://img.shields.io/badge/Sui-Mainnet-4DA2FF?style=for-the-badge&logo=sui&logoColor=white)](https://suiscan.xyz/mainnet)
-[![Live Demo](https://img.shields.io/badge/Live-IPFS-cyan)](https://ipfs.io/ipfs/QmVkFYX8VT1zuVb4mRnKKz2s393XkckKVFzr5NhhcqbQ6i)
+[![Live Demo](https://img.shields.io/badge/Live-SuiCompass.com-cyan)](https://suicompass.com)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
 **🌐 Live Platform**: [suicompass.com](https://suicompass.com)

@@ -18,6 +18,7 @@
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
     "test:ci": "vitest --run --coverage",
+    "deploy": "npm run build && firebase deploy --only hosting",
     "cli": "node cli/ghost-cli.js",
     "sui-compass": "node cli/ghost-cli.js",
     "test:onchain": "tsx test-onchain.ts"
