@@ -6,8 +6,9 @@
 import { useState } from 'react'
 import { useWallet } from '../../blockchain/WalletProvider'
 import { executeLiquidStake, findBestValidator } from '../../blockchain/sui-operations'
-import { suiClient } from '../../blockchain/sui-client'
+import suiClient from '../../blockchain/sui-client'
 import { showNotification } from '../ui/Notification'
+import { useNetworkStore, NetworkType } from '../../stores/network-store'
 
 interface TestPanelProps {
   onClose?: () => void
@@ -15,6 +16,7 @@ interface TestPanelProps {
 
 export default function DebugPanel({ onClose }: TestPanelProps) {
   const { publicKey, isConnected, signAndExecute } = useWallet()
+  const { network, setNetwork } = useNetworkStore()
   const [loading, setLoading] = useState(false)
 
   // Only show content if connected, or show placeholder
@@ -86,8 +88,8 @@ export default function DebugPanel({ onClose }: TestPanelProps) {
 
     setLoading(true)
     try {
-      const balance = await suiClient.getAccountBalance(publicKey)
-      const balanceSUI = Number(balance) / 1e9
+      const balance = await suiClient.getBalance({ owner: publicKey });
+      const balanceSUI = Number(balance.totalBalance) / 1e9;
 
       showNotification({
         type: 'info',
@@ -111,7 +113,7 @@ export default function DebugPanel({ onClose }: TestPanelProps) {
   const testFindValidators = async () => {
     setLoading(true)
     try {
-      const validators = await suiClient.getActiveValidators()
+      const validators = await suiClient.getValidators()
       showNotification({
         type: 'info',
         title: '🔍 Validators Found',
@@ -132,6 +134,8 @@ export default function DebugPanel({ onClose }: TestPanelProps) {
     }
   }
 
+  const isProd = import.meta.env.PROD;
+
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80 bg-[#0d1117] border border-slate-700/50 rounded-xl p-4 shadow-2xl">
       <div className="flex items-center justify-between mb-4">
@@ -150,6 +154,23 @@ export default function DebugPanel({ onClose }: TestPanelProps) {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Network Switcher */}
+      <div className="mb-4">
+        <label className="block text-xs text-slate-500 mb-1 uppercase tracking-wide font-bold">Network</label>
+        <select 
+            value={network}
+            onChange={(e) => setNetwork(e.target.value as NetworkType)}
+            disabled={isProd}
+            className="w-full bg-slate-800 text-slate-300 text-xs rounded p-2 border border-slate-700 focus:ring-1 focus:ring-cyan-500 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            <option value="mainnet">Mainnet</option>
+            <option value="testnet">Testnet</option>
+            <option value="devnet">Devnet</option>
+            <option value="localnet">Localnet</option>
+        </select>
+        {isProd && <p className="text-[10px] text-orange-500mt-1 mt-1">Locket to Mainnet in Production</p>}
       </div>
 
       {/* Test Buttons */}

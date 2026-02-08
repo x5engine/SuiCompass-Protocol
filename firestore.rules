@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The only collection that needs to be public is the test one.
+    match /test_collection/{docId} {
+      allow read, write: if true;
+    }
+
+    // All user data is protected.
+    match /users/{userId}/{document=**} {
+      // Rule: A user can only read or write documents inside their own user path.
+      // This is the most direct way to write this rule.
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

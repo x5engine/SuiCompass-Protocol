@@ -1,87 +1,54 @@
+import { SuiClient } from '@mysten/sui/client';
+import suiClient from './sui-client';
 import { Transaction } from '@mysten/sui/transactions';
-import { SUI_SYSTEM_STATE_OBJECT_ID } from '@mysten/sui/utils';
-import { suiClient } from './sui-client';
+import { USDC_COIN_TYPE } from './sui-client';
+
+const SUI_LIQUID_STAKE_PACKAGE_ID = '0x...'; // Replace with actual package ID
 
 /**
- * Execute native SUI staking (RequestAddStake)
+ * Find the validator with the highest APY
  */
-export async function executeLiquidStake(params: {
-  amount: bigint; // in MIST
-  validatorPublicKey: string;
-}) {
-  const tx = new Transaction();
-
-  // Split coins to get the stake amount
-  // We use [tx.gas] if we want to stake from gas object, or split from a specific coin.
-  // Ideally, dApp kit manages coin selection.
-  // Simplest pattern: split from gas
-  const [stakeCoin] = tx.splitCoins(tx.gas, [tx.pure.u64(params.amount)]);
-
-  tx.moveCall({
-    target: '0x3::sui_system::request_add_stake',
-    arguments: [
-      tx.object(SUI_SYSTEM_STATE_OBJECT_ID),
-      stakeCoin,
-      tx.pure.address(params.validatorPublicKey),
-    ],
-  });
-
-  return tx;
+export async function findBestValidator(): Promise<string> {
+  const validators = await suiClient.getValidators();
+  if (!validators || validators.length === 0) {
+    throw new Error('No validators found');
+  }
+  const best = validators.reduce((prev, current) => (Number(prev.apy) > Number(current.apy)) ? prev : current);
+  return best.suiAddress;
 }
 
 /**
- * Unstake (WithdrawStake)
+ * Get staking info for an address
  */
-export async function executeUnstake(
-  stakedSuiId: string
-) {
-  const tx = new Transaction();
-
-  tx.moveCall({
-    target: '0x3::sui_system::request_withdraw_stake',
-    arguments: [
-      tx.object(SUI_SYSTEM_STATE_OBJECT_ID),
-      tx.object(stakedSuiId),
-    ],
-  });
-
-  return tx;
-}
-
-/**
- * Claim Rewards - Not explicit in Sui (auto-claimed on withdraw), 
- * but maybe we want to just restake?
- * For now, placeholder.
- */
-export async function executeClaimRewards() {
-  // Sui rewards are auto-compounded. 
-  // Maybe this explains that or does a dummy tx.
-  console.log("Sui rewards are auto-compounded!");
-  return null;
-}
-
-export async function findBestValidator() {
-  const validators = await suiClient.getActiveValidators();
-  // Return random or first
-  return validators[0]?.public_key || '';
-}
-
 export async function getStakingInfo(address: string) {
-  // Get active stakes
-  const stakes = await suiClient.client.getStakes({ owner: address });
-  let totalStaked = 0n;
-  let estimatedRewards = 0n;
-
+  const stakes = await suiClient.getStakes({ owner: address });
+  let stakedAmount = BigInt(0);
+  let pendingRewards = BigInt(0);
   stakes.forEach(s => {
     s.stakes.forEach(stake => {
-      totalStaked += BigInt(stake.principal);
-      estimatedRewards += BigInt((stake as any).estimatedReward || 0);
+      stakedAmount += BigInt(stake.principal);
+      // Reward calculation is more complex, this is a placeholder
     });
   });
+  return { stakedAmount, pendingRewards, stakes };
+}
 
-  return {
-    stakedAmount: totalStaked,
-    pendingRewards: estimatedRewards,
-    validator: stakes[0]?.validatorAddress || null // Return first validator or null
-  };
+/**
+ * Get SUI price (mocked)
+ */
+export async function getSuiPrice(): Promise<number> {
+  return Promise.resolve(4.25); // Mock price
+}
+
+/**
+ * Create a transaction to liquid stake SUI
+ */
+export async function executeLiquidStake(params: { amount: bigint; validatorPublicKey: string }): Promise<Transaction> {
+  const tx = new Transaction();
+  const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(params.amount.toString())]);
+  tx.moveCall({
+    target: `${SUI_LIQUID_STAKE_PACKAGE_ID}::liquid_stake::stake`,
+    arguments: [tx.object('0x...'), coin, tx.pure.address(params.validatorPublicKey)], // Replace with actual pool ID
+  });
+  return tx;
 }

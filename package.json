@@ -34,6 +34,7 @@
     "@vitejs/plugin-react": "^4.3.0",
     "axios": "^1.7.0",
     "canvas-confetti": "^1.9.4",
+    "chess.js": "^1.4.0",
     "d3": "^7.9.0",
     "date-fns": "^4.1.0",
     "dotenv": "^16.4.5",
@@ -42,13 +43,16 @@
     "ipfs-http-client": "^60.0.1",
     "pinata-web3": "^0.5.4",
     "react": "^19.0.0",
+    "react-chessboard": "^5.8.6",
     "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+
+    "remark-gfm": "^4.0.1",
     "vite": "^5.4.0",
     "zod": "^3.23.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

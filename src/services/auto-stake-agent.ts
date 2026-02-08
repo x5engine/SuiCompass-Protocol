@@ -3,7 +3,7 @@
  * Monitors balance and automatically prepares stake transactions
  */
 
-import { suiClient } from '../blockchain/sui-client'
+import suiClient from '../blockchain/sui-client'
 import { findBestValidator } from '../blockchain/sui-operations'
 import { useAutoStakeStore } from '../stores/auto-stake-store'
 import { showNotification } from '../components/ui/Notification'
@@ -74,10 +74,10 @@ class AutoStakeAgent {
       store.setStatus('monitoring')
 
       // Check balance
-      const balance = await suiClient.getAccountBalance(publicKey)
-      const balanceSUI = Number(balance) / 1e9
+      const balanceData = await suiClient.getBalance({ owner: publicKey });
+      const balanceSUI = Number(balanceData.totalBalance) / 1e9;
 
-      store.setLastCheckedBalance(balance)
+      store.setLastCheckedBalance(balanceData.totalBalance);
 
       // Check if balance exceeds threshold
       if (balanceSUI < store.threshold) {

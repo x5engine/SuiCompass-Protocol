@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import { useAutoStakeStore } from '../../stores/auto-stake-store'
+import { useGamificationStore } from '../../stores/gamification-store'
 import { useWallet } from '../../blockchain/WalletProvider'
 import { useAutoStakeAgent } from '../../hooks/useAutoStakeAgent'
 import AutoStakeSettings from './AutoStakeSettings'
@@ -17,6 +18,7 @@ export default function AutoStakeToggle() {
   const { isConnected, publicKey } = useWallet()
   const { enabled, status, pendingStakeAmount, pendingValidator, updateSettings, setStatus } = useAutoStakeStore()
   const { executePendingStake } = useAutoStakeAgent()
+  const { awardPoints } = useGamificationStore()
   const [showSettings, setShowSettings] = useState(false)
 
   // Don't show if wallet not connected
@@ -36,6 +38,7 @@ export default function AutoStakeToggle() {
         message: 'I am now watching your metrics.',
         sound: 'epic'
       })
+      awardPoints('earn', 50) // Award points for enabling agent
     } else {
       playSound('click')
       setStatus('idle')

@@ -1,97 +1,25 @@
-import { SuiClient, getFullnodeUrl } from '@mysten/sui/client';
+import { SuiClient } from '@mysten/sui/client';
 
-export class SuiNetworkClient {
-    public client: SuiClient;
+const SUI_TESTNET_RPC = 'https://fullnode.testnet.sui.io:443';
+const rpcUrl = import.meta.env.VITE_SUI_NETWORK === 'mainnet' ? 'https://sui-mainnet.blockvision.org' : SUI_TESTNET_RPC;
 
-    constructor(network: string = 'mainnet') {
-        // Map to valid Sui networks or use custom URL
-        const rpcUrl = import.meta.env.VITE_SUI_RPC_URL || getFullnodeUrl(network as any);
+console.log(`🔗 Connecting to Sui ${import.meta.env.VITE_SUI_NETWORK || 'testnet'}`);
 
-        console.log(`🔗 Connecting to Sui ${network} at ${rpcUrl}`);
-        this.client = new SuiClient({ url: rpcUrl });
-    }
+const suiClient = new SuiClient({ url: rpcUrl });
 
-    /**
-     * Get account balance in MIST (Sui's smallest unit).
-     * 1 SUI = 1,000,000,000 MIST.
-     */
-    async getAccountBalance(address: string): Promise<bigint> {
-        try {
-            const balance = await this.client.getBalance({
-                owner: address,
-            });
-            return BigInt(balance.totalBalance);
-        } catch (error) {
-            console.error('❌ Error getting balance:', error);
-            return BigInt(0);
-        }
-    }
+const USDC_COIN_TYPE = import.meta.env.VITE_SUI_NETWORK === 'mainnet'
+    ? '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d2177a13c::coin::COIN'
+    : '0xda311394c03b156a20516b0d9e80b27a3c3b08e2f0732e70e3a6a978f85f3922::coin::COIN';
 
-    /**
-     * Get all active validators from the Sui System State with real APY.
-     */
-    async getActiveValidators() {
-        try {
-            const state = await this.client.getLatestSuiSystemState();
-            const apys = await this.client.getValidatorsApy();
-
-            // Create a map of APYs for O(1) lookup
-            const apyMap = new Map(apys.apys.map(a => [a.address, a.apy]));
-
-            return state.activeValidators.map((v) => {
-                const apyVal = apyMap.get(v.suiAddress) || 0;
-                return {
-                    public_key: v.suiAddress,
-                    name: v.name,
-                    description: v.description,
-                    imageUrl: v.imageUrl,
-                    projectUrl: v.projectUrl,
-                    stake: v.stakingPoolSuiBalance,
-                    apy: (apyVal * 100).toFixed(2) + "%",
-                    commission: (Number(v.commissionRate) / 100).toFixed(2) + "%",
-                };
-            });
-        } catch (error) {
-            console.error('❌ Error getting validators:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Get specific validator info.
-     */
-    async getValidatorInfo(address: string) {
-        try {
-            const validators = await this.getActiveValidators();
-            return validators.find(v => v.public_key === address) || null;
-        } catch (error) {
-            console.error('❌ Error getting validator info:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get transaction details.
-     */
-    async getTransaction(digest: string) {
-        try {
-            return await this.client.getTransactionBlock({
-                digest,
-                options: {
-                    showEffects: true,
-                    showInput: true,
-                    showEvents: true,
-                    showBalanceChanges: true,
-                },
-            });
-        } catch (error) {
-            console.error('❌ Error getting transaction:', error);
-            throw error;
-        }
+export async function getUsdcBalance(owner: string): Promise<number> {
+    try {
+        const balanceObject = await suiClient.getBalance({ owner, coinType: USDC_COIN_TYPE });
+        return Number(balanceObject.totalBalance) / 1_000_000;
+    } catch (error) {
+        console.error("Failed to fetch USDC balance:", error);
+        return 0;
     }
 }
 
-// Export singleton
-export const suiClient = new SuiNetworkClient(
-    (import.meta.env.VITE_SUI_NETWORK as string) || 'mainnet'
-);
+export { USDC_COIN_TYPE };
+export default suiClient;

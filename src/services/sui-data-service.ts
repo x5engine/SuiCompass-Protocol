@@ -1,4 +1,4 @@
-import { suiClient, SuiNetworkClient } from '../blockchain/sui-client';
+import suiClient from '../blockchain/sui-client';
 
 
 export class SuiDataService {
