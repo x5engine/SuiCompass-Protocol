@@ -25,10 +25,3 @@ Implement the core Real-World Asset (RWA) logic and prepare the platform for mai
 *   **RWA Modules:** 100%
 *   **Storage Logic:** 90%
 *   **AI Risk Engine:** 70%
-
-## 🔗 Deployed Contracts (Reference)
-| Package | Network | Address |
-| :--- | :--- | :--- |
-| **RWA Registry** | Mainnet | `0x3fbda5bad770f8a81d1d84741f1bc508a2f30275203c667ef1cc27fb88f750d2` |
-| **RWA NFT** | Mainnet | `0x33bd2f7e8b9032625fb2647bc840eeed71e4c2e7fa8a3f2b65d869a2472fc710` |
-| **SuiCompass Core** | Mainnet | `0x9cab3a40743b2ee7d6aedb268135fda191d94b14c90a9201d5a713c085b216c4` |
