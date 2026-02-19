@@ -1,97 +1,95 @@
-import EmbedAPIClientModule from '@embedapi/core'
+import EmbedAPIClientModule from '@embedapi/core';
+import { ChatMessage } from '../stores/chat-store';
+import { SYSTEM_ARCHITECTURE } from './architecture-context';
+import { SUI_CONTRACTS } from './contract-knowledge';
 
 const EmbedAPIClient = (EmbedAPIClientModule as any).default || EmbedAPIClientModule;
+const embedApiKey = "01ReKzCAcklD-K1UCKlefAc2AxfOtSTS";
 
-const embedApiKey = import.meta.env.VITE_EMBEDAPI_KEY || import.meta.env.VITE_EMBED_API_KEY;
+export const embedApiClient = new EmbedAPIClient(embedApiKey);
 
-if (!embedApiKey || embedApiKey === 'your_embedapi_key_here') {
-  console.info('ℹ️ EmbedAPI: AI features disabled. Set VITE_EMBEDAPI_KEY in .env to enable.');
-}
+// Generate dynamic contract capabilities list
+const CONTRACT_CAPABILITIES = SUI_CONTRACTS.map(c => `- **${c.name}** (${c.id}): ${c.description}`).join('\n');
+const VALID_ACTION_TYPES = SUI_CONTRACTS.map(c => c.id).join('|') + "|stake|swap|game";
 
-export const embedApiClient = embedApiKey && embedApiKey !== 'your_embedapi_key_here' && typeof EmbedAPIClient === 'function'
-  ? new EmbedAPIClient(embedApiKey)
-  : null;
+const SUI_AGENT_SYSTEM_PROMPT = `You are SuiCompass, a DeFi and gaming assistant on the Sui Network. Your personality is a mix of a hyper-intelligent crypto gigabrain and a playful, slightly cocky gamer who knows Sui is the future. You are a Sui Maxi.
 
-console.log("EmbedAPI initialized:", !!embedApiClient);
+**Your Core Directives:**
+1.  **Be Epic & Engaging:** Use emojis, be energetic, and make DeFi feel like a game.
+2.  **Drop Knowledge:** Casually drop impressive facts about Sui's technology.
+3.  **Playfully Troll:** Lightly diss other blockchains when comparing Sui's advantages.
+4.  **Always Be Guiding:** Your goal is to get the user to DO something on Sui.
+5.  **Promote the Game:** Casually mention the chess game as a way to earn XP.
 
-// System-level instructions for the AI model
-const SUI_AGENT_SYSTEM_PROMPT = `You are SuiCompass, an expert AI assistant for the Sui Blockchain. Your goal is to help users manage their DeFi portfolio, stake assets, and understand the ecosystem.
+**System Architecture & Knowledge Base:**
+${SYSTEM_ARCHITECTURE}
 
-**Capabilities (Tools):**
-1.  **stake**: Stake SUI tokens. Params: amount (in SUI), validator (optional).
-2.  **unstake**: Unstake SUI. Params: amount (optional).
-3.  **portfolio**: Check wallet balance and staking positions.
-4.  **transfer**: Send tokens. Params: amount, recipient, token.
-5.  **swap**: Swap tokens (e.g., SUI to USDC). Params: fromToken, toToken, amount.
-6.  **earn**: Deposit assets into a lending protocol (e.g., Navi, Scallop). Params: token, amount, protocol (optional).
+**Your Available "Top-Notch" Capabilities:**
+${CONTRACT_CAPABILITIES}
 
-**Instructions:**
-- If the user asks a question, answer it helpfully and concisely.
-- Format your 'reply' using Markdown.
-- If the user wants to perform an action, you MUST generate a structured JSON response to trigger the tool.
-- You can combine a text response with an action (e.g., "Sure, I'll stake that for you.").
-- If parameters are missing, ask the user for them in the "reply".
-- **VERY IMPORTANT**: Always provide 3-4 "suggestions" for what the user might want to do next, based on the current context.
-
-**Response Format (MUST be valid JSON):**
+**CRITICAL INSTRUCTION: Your entire response MUST be a single, valid JSON object.**
 {
-  "thought": "Brief reasoning.",
-  "reply": "Natural language response.",
-  "suggestions": [ { "text": "Short prompt text", "icon": "emoji", "type": "stake|swap|earn|info" } ],
-  "action": { "type": "...", "parameters": { ... } }
-}`;
+  "thought": "Your internal monologue. Be yourself here.",
+  "reply": "The user-facing message. Use Markdown. Be epic. Use lots of emojis.",
+  "suggestions": [ { "text": "Short, exciting next step!", "icon": "🚀", "type": "stake|swap|game|portfolio|index_fund|..." } ],
+  "action": { "type": "${VALID_ACTION_TYPES}", "parameters": { "amount": 10, "asset": "SUI", "target": "..." } }
+}
+`;
 
 export interface ParsedIntent {
-  success: boolean
-  reply?: string
-  thought?: string
-  suggestions?: Array<{ text: string, icon: string, type: string }>
-  intent?: string
-  entities?: any
-  transactionData?: any
-  error?: string
+  success: boolean;
+  reply?: string;
+  thought?: string;
+  suggestions?: Array<{ text: string, icon: string, type: string }>;
+  intent?: string;
+  entities?: any;
+  error?: string;
 }
 
-// Generate intent from user input
-export async function generateIntent(userInput: string): Promise<ParsedIntent> {
-  if (!embedApiClient) {
-    return {
-      success: false,
-      error: 'EmbedAPI is not configured. Please set VITE_EMBEDAPI_KEY in your .env file.',
-    }
-  }
-
+export async function generateIntent(userInput: string, history: ChatMessage[] = []): Promise<ParsedIntent> {
+  if (!embedApiClient) return { success: false, error: 'EmbedAPI not configured.' };
+  
   try {
+    const messages = history.map(msg => ({ role: msg.role, content: msg.content }));
+    messages.push({ role: 'user', content: userInput });
+
     const response = await embedApiClient.generate({
-      service: 'anthropic',
+      service: 'anthropic', 
       model: 'claude-3-5-sonnet-20241022',
-      messages: [
-        { role: 'system', content: SUI_AGENT_SYSTEM_PROMPT },
-        { role: 'user', content: userInput }
-      ],
-      temperature: 0.3,
+      messages: [{ role: 'system', content: SUI_AGENT_SYSTEM_PROMPT }, ...messages],
+      temperature: 0.7, 
       maxTokens: 1000,
-    })
+    });
 
-    let responseText = ((response as any)?.data?.text || (response as any)?.data || (response as any)?.text || JSON.stringify(response))
-        .replace(/```json/g, '').replace(/```/g, '').trim();
-
-    const parsed = JSON.parse(responseText)
-
-    return {
-      success: true,
-      reply: parsed.reply,
-      thought: parsed.thought,
-      suggestions: parsed.suggestions,
-      intent: parsed.action?.type,
-      entities: parsed.action?.parameters, // Keep it simple
-      transactionData: parsed.action?.parameters || {},
+    const responseText = (response as any)?.data;
+    
+    try {
+      // Clean up potential markdown code blocks if the AI wraps JSON
+      const cleanJson = responseText.replace(/```json\n?|\n?```/g, '').trim();
+      const parsed = JSON.parse(cleanJson);
+      
+      return {
+        success: true, 
+        reply: parsed.reply, 
+        thought: parsed.thought,
+        suggestions: parsed.suggestions || [], 
+        intent: parsed.action?.type, 
+        entities: parsed.action?.parameters,
+      };
+    } catch (e) {
+      console.warn("AI did not return valid JSON. Treating response as plain text.", responseText);
+      // Fallback: If AI fails JSON, return the raw text as a reply
+      return {
+        success: true, 
+        reply: responseText, 
+        thought: "AI failed to return JSON format.",
+        suggestions: [], 
+        intent: 'null', 
+        entities: {},
+      };
     }
   } catch (error) {
-    console.error('EmbedAPI Error:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }
+    console.error('EmbedAPI Error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

@@ -77,7 +77,7 @@ const networkConfig = {
 
 export function WalletProvider({ children, autoConnect = false }: { children: ReactNode; autoConnect?: boolean }) {
   return (
-    <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
+    <SuiClientProvider networks={networkConfig} defaultNetwork="mainnet">
       <DAppKitWalletProvider autoConnect={autoConnect}>
         <WalletContextWrapper>{children}</WalletContextWrapper>
       </DAppKitWalletProvider>

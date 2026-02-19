@@ -1,53 +1,34 @@
-import { useState } from 'react';
-import { Chess } from 'chess.js';
-import { Chessboard } from 'react-chessboard';
-import { useGamificationStore } from '../../stores/gamification-store';
-import { playSound } from '../../utils/sound-effects';
+// src/components/games/ChessGame.tsx
+import { useState, useEffect } from "react";
+import GameSession from "../../lib/session";
+import Board from "./chess/Board";
+import Controls from "./chess/Controls";
+import Header from "./chess/Header";
+import { useDashboardStore } from "../../stores/dashboard-store";
 
 export default function ChessGame() {
-  const [game, setGame] = useState(new Chess());
-  const { awardPoints } = useGamificationStore();
+  const [game, setGame] = useState<GameSession | undefined>(undefined);
+  const { setActiveTab } = useDashboardStore();
 
-  function makeRandomMove() {
-    const possibleMoves = game.moves();
-    if (game.isGameOver() || game.isDraw() || possibleMoves.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * possibleMoves.length);
-    const move = possibleMoves[randomIndex];
-    setGame(g => {
-      const update = new Chess(g.fen());
-      update.move(move);
-      return update;
-    });
-    playSound('hover');
-  }
+  useEffect(() => {
+    setGame(new GameSession(true));
+  }, []);
 
-  function onDrop(sourceSquare: string, targetSquare: string) {
-    const gameCopy = new Chess(game.fen());
-    try {
-      const move = gameCopy.move({ from: sourceSquare, to: targetSquare, promotion: 'q' });
-      if (move === null) return false;
-      setGame(gameCopy);
-      playSound('click');
-      setTimeout(makeRandomMove, 200);
-      if (gameCopy.isCheckmate()) {
-        awardPoints('earn', 500);
-        alert("Checkmate! You win!");
-      }
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  if (!game) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-slate-900/50 rounded-3xl border border-slate-800">
-      <h2 className="text-2xl font-bold text-white mb-4">Sui Chess</h2>
-      <div className="w-full max-w-[400px] aspect-square">
-        <Chessboard position={game.fen()} onPieceDrop={onDrop} />
-      </div>
-      <button onClick={() => setGame(new Chess())} className="mt-6 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors border border-slate-700">
-        Reset Game
+    <div className="flex flex-col items-center p-4 w-full relative">
+      {/* Absolute Close Button as Failsafe */}
+      <button 
+        onClick={() => setActiveTab(null)}
+        className="absolute top-0 right-0 m-2 z-50 text-slate-400 hover:text-white bg-slate-900/80 px-3 py-1 rounded-full text-sm border border-slate-700"
+      >
+        ✕ Exit
       </button>
+
+      <Header game={game} />
+      <Board game={game} />
+      <Controls game={game} />
     </div>
   );
 }

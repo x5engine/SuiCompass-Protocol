@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 
 const NETWORK = process.env.VITE_SUI_NETWORK || 'mainnet';
-const PACKAGE_PATH = path.join(process.cwd(), 'sui_rwa');
+const PACKAGE_PATH = path.join(process.cwd(), 'contracts');
 
 console.log(`🚀 Starting deployment for network: ${NETWORK}`);
 console.log(`📂 Package Path: ${PACKAGE_PATH}`);

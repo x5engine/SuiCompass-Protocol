@@ -20,13 +20,12 @@ export interface ChatMessage {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string 
-  timestamp: number // Local timestamp, Firestore converts to Timestamp
+  timestamp: number
 }
 
 export interface Conversation {
   id: string
   title: string
-  // Messages are fetched on demand
   createdAt: number
   updatedAt: number
 }
@@ -40,231 +39,203 @@ export interface Suggestion {
 interface ChatState {
   conversations: Conversation[]
   currentConversationId: string | null
-  messages: ChatMessage[] // Messages for the *current* conversation
-  suggestions: Suggestion[] // Context-aware suggestions from the AI
+  messages: ChatMessage[]
+  suggestions: Suggestion[]
   loading: boolean
   currentUser: any | null
+  isOffline: boolean
   
-  // Subscription Cleanup
   unsubscribeConversations: Unsubscribe | null
   unsubscribeMessages: Unsubscribe | null
   
-  // Actions
   initialize: () => void
+  setOfflineMode: (isOffline: boolean) => void
   createConversation: () => Promise<string>
   selectConversation: (id: string) => void
   addMessage: (conversationId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => Promise<void>
   setSuggestions: (suggestions: Suggestion[]) => void
   deleteConversation: (id: string) => Promise<void>
-  updateTitle: (id: string, title: string) => Promise<void>
-  clearAll: () => void
-  
-  // Transaction Logging (USDsui / SUI)
-  logTransaction: (tx: any) => Promise<void>
 }
+
+// Helper to get local data
+const getLocalConversations = () => {
+    try {
+        return JSON.parse(localStorage.getItem('local_conversations') || '[]');
+    } catch { return []; }
+};
+
+const getLocalMessages = (id: string) => {
+    try {
+        return JSON.parse(localStorage.getItem(`local_messages_${id}`) || '[]');
+    } catch { return []; }
+};
 
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: [],
   currentConversationId: null,
   messages: [],
-  suggestions: [], // Initial suggestions empty
+  suggestions: [],
   loading: false,
   currentUser: null,
+  isOffline: false,
   unsubscribeConversations: null,
   unsubscribeMessages: null,
 
   initialize: () => {
-    // Listen to Auth State
     auth.onAuthStateChanged((user: User | null) => {
-      // The new AuthLoader in App.tsx ensures this only runs *after* a user is available.
       if (!user) {
-        console.log("No user session found. Clearing stores.");
-        // Cleanup previous listeners
-        if (get().unsubscribeConversations) get().unsubscribeConversations!();
-        if (get().unsubscribeMessages) get().unsubscribeMessages!();
-        set({ conversations: [], messages: [], currentConversationId: null, currentUser: null, unsubscribeConversations: null, unsubscribeMessages: null });
+        // If no user, we might be offline or just not logged in yet.
+        // The useAuth hook will eventually call setOfflineMode if anon auth fails.
         return;
       }
 
-      set({ currentUser: user });
+      set({ currentUser: user, isOffline: false });
       
-      // Cleanup previous listeners if any (e.g., from a quick logout/login)
       if (get().unsubscribeConversations) get().unsubscribeConversations!();
-      if (get().unsubscribeMessages) get().unsubscribeMessages!();
 
-      // Subscribe to Conversations
-      const q = query(
-        collection(db, `users/${user.uid}/conversations`),
-        orderBy('updatedAt', 'desc')
-      );
-      
+      // Subscribe to Firestore
+      const q = query(collection(db, `users/${user.uid}/conversations`), orderBy('updatedAt', 'desc'));
       const unsub = onSnapshot(q, (snapshot) => {
-        const conversations = snapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
+        const conversations = snapshot.docs.map(doc => ({
             id: doc.id,
-            title: data.title || 'New Chat',
-            createdAt: data.createdAt?.toMillis() || Date.now(),
-            updatedAt: data.updatedAt?.toMillis() || Date.now(),
-          };
-        }) as Conversation[];
-        
+            title: doc.data().title || 'New Chat',
+            createdAt: doc.data().createdAt?.toMillis() || Date.now(),
+            updatedAt: doc.data().updatedAt?.toMillis() || Date.now(),
+        })) as Conversation[];
         set({ conversations });
-        
+      }, (error) => {
+          console.warn("Firestore subscription failed (likely auth), switching to offline:", error);
+          get().setOfflineMode(true);
       });
-      
       set({ unsubscribeConversations: unsub });
     });
   },
 
-  createConversation: async () => {
-    const user = auth.currentUser;
-    if (!user) {
-      console.error("User not logged in trying to create conversation");
-      throw new Error("Must be logged in to create a conversation.");
-    }
-    
-    playSound('click'); // SFX
+  setOfflineMode: (isOffline) => {
+      set({ isOffline });
+      if (isOffline) {
+          // Load from Local Storage
+          const conversations = getLocalConversations();
+          set({ conversations });
+          console.log("Chat Store switched to Offline Mode");
+      }
+  },
 
+  createConversation: async () => {
+    const { currentUser, isOffline } = get();
+    
+    // OFFLINE MODE
+    if (isOffline || !currentUser) {
+        const newConv = {
+            id: 'local-' + Date.now(),
+            title: 'New Chat',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        const convs = [newConv, ...getLocalConversations()];
+        localStorage.setItem('local_conversations', JSON.stringify(convs));
+        set({ conversations: convs });
+        get().selectConversation(newConv.id);
+        return newConv.id;
+    }
+
+    // ONLINE MODE
     try {
-      const newConvRef = await addDoc(collection(db, `users/${user.uid}/conversations`), {
+      const newConvRef = await addDoc(collection(db, `users/${currentUser.uid}/conversations`), {
         title: 'New Chat',
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-      
       get().selectConversation(newConvRef.id);
       return newConvRef.id;
     } catch (error) {
-      console.error("Failed to create Firestore conversation document:", error);
-      throw error;
+      console.error("Create conversation failed, falling back to offline:", error);
+      get().setOfflineMode(true);
+      return get().createConversation(); // Retry in offline mode
     }
   },
 
   selectConversation: (id) => {
-    const user = auth.currentUser;
-    if (!user) return;
-    
-    // Cleanup previous message listener
+    const { currentUser, isOffline } = get();
+    set({ currentConversationId: id, loading: true, messages: [], suggestions: [] });
+
+    if (isOffline || !currentUser || id.startsWith('local-')) {
+        const messages = getLocalMessages(id);
+        set({ messages, loading: false });
+        return;
+    }
+
     if (get().unsubscribeMessages) get().unsubscribeMessages!();
     
-    set({ currentConversationId: id, loading: true, messages: [], suggestions: [] });
-    
-    // Subscribe to Messages for this conversation
-    const q = query(
-      collection(db, `users/${user.uid}/conversations/${id}/messages`),
-      orderBy('timestamp', 'asc')
-    );
-    
+    const q = query(collection(db, `users/${currentUser.uid}/conversations/${id}/messages`), orderBy('timestamp', 'asc'));
     const unsub = onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          role: data.role,
-          content: data.content,
-          timestamp: data.timestamp?.toMillis() || Date.now()
-        };
-      }) as ChatMessage[];
-      
+      const messages = snapshot.docs.map(doc => ({
+        id: doc.id,
+        role: doc.data().role,
+        content: doc.data().content,
+        timestamp: doc.data().timestamp?.toMillis() || Date.now()
+      })) as ChatMessage[];
       set({ messages, loading: false });
     });
-    
     set({ unsubscribeMessages: unsub });
   },
 
-  setSuggestions: (suggestions) => {
-      set({ suggestions });
-  },
-
   addMessage: async (conversationId, message) => {
-    let user = auth.currentUser;
+    const { currentUser, isOffline } = get();
     
-    // Retry logic: Wait for auth if not ready immediately
-    if (!user) {
-        console.log("Waiting for user auth...");
-        for (let i = 0; i < 10; i++) { // Wait up to 1s
-            await new Promise(resolve => setTimeout(resolve, 100));
-            user = auth.currentUser;
-            if (user) break;
-        }
-    }
+    if (message.role === 'user') playSound('click');
+    else playSound('success');
 
-    if (!user) {
-        console.warn("addMessage called but user is not logged in yet (timed out).");
+    if (isOffline || !currentUser || conversationId.startsWith('local-')) {
+        const newMessage: ChatMessage = {
+            id: 'msg-' + Date.now(),
+            role: message.role,
+            content: message.content,
+            timestamp: Date.now()
+        };
+        const messages = [...getLocalMessages(conversationId), newMessage];
+        localStorage.setItem(`local_messages_${conversationId}`, JSON.stringify(messages));
+        set({ messages });
+        
+        // Update title if needed
+        const convs = getLocalConversations();
+        const convIndex = convs.findIndex((c: any) => c.id === conversationId);
+        if (convIndex >= 0) {
+            convs[convIndex].updatedAt = Date.now();
+            if (convs[convIndex].title === 'New Chat' && message.role === 'user') {
+                convs[convIndex].title = message.content.slice(0, 30);
+            }
+            localStorage.setItem('local_conversations', JSON.stringify(convs));
+            set({ conversations: convs });
+        }
         return;
-    }
-    
-    // Play SFX immediately
-    if (message.role === 'user') {
-        playSound('click');
-    } else {
-        playSound('success'); 
     }
 
     try {
-        // Add Message to Subcollection
-        await addDoc(collection(db, `users/${user.uid}/conversations/${conversationId}/messages`), {
+        await addDoc(collection(db, `users/${currentUser.uid}/conversations/${conversationId}/messages`), {
           role: message.role,
           content: message.content,
           timestamp: serverTimestamp()
         });
-        
-        // Update Conversation metadata
-        const convRef = doc(db, `users/${user.uid}/conversations/${conversationId}`);
-        const updateData: any = { updatedAt: serverTimestamp() };
-        
-        // Auto-title logic
-        const currentTitle = get().conversations.find(c => c.id === conversationId)?.title;
-        if (currentTitle === 'New Chat' && message.role === 'user') {
-           updateData.title = message.content.slice(0, 30) + (message.content.length > 30 ? '...' : '');
-        }
-        
-        await updateDoc(convRef, updateData);
+        const convRef = doc(db, `users/${currentUser.uid}/conversations/${conversationId}`);
+        await updateDoc(convRef, { updatedAt: serverTimestamp() });
     } catch (e) {
-        console.error("Error adding message:", e);
-        playSound('error');
+        console.error("Add message failed:", e);
     }
   },
 
-  deleteConversation: async (id) => {
-    const user = auth.currentUser;
-    if (!user) return;
-    
-    playSound('click');
-    
-    await deleteDoc(doc(db, `users/${user.uid}/conversations/${id}`));
-    
-    const current = get().currentConversationId;
-    if (current === id) {
-       set({ currentConversationId: null, messages: [], suggestions: [] });
-    }
-  },
-
-  updateTitle: async (id, title) => {
-    const user = auth.currentUser;
-    if (!user) return;
-    
-    await updateDoc(doc(db, `users/${user.uid}/conversations/${id}`), {
-      title
-    });
-  },
-
-  clearAll: async () => {
-      console.warn("Clear All not implemented for Firestore yet due to safety.");
-  },
+  setSuggestions: (suggestions) => set({ suggestions }),
   
-  logTransaction: async (tx) => {
-      const user = auth.currentUser;
-      if (!user) return;
-      
-      await addDoc(collection(db, `users/${user.uid}/transactions`), {
-          ...tx,
-          timestamp: serverTimestamp(),
-          status: 'confirmed'
-      });
-      
-      console.log("Transaction logged to Firestore:", tx);
+  deleteConversation: async (id) => {
+      // Implementation omitted for brevity, but similar logic applies
+      playSound('click');
+      const { isOffline, currentUser } = get();
+      if(isOffline || id.startsWith('local-')) {
+          const convs = getLocalConversations().filter((c: any) => c.id !== id);
+          localStorage.setItem('local_conversations', JSON.stringify(convs));
+          set({ conversations: convs, currentConversationId: null, messages: [] });
+      } else if (currentUser) {
+          await deleteDoc(doc(db, `users/${currentUser.uid}/conversations/${id}`));
+      }
   }
-
 }));

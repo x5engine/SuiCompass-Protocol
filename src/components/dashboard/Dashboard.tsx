@@ -1,17 +1,17 @@
-import { useDashboardStore } from '../../stores/dashboard-store'
-import ProfilePage from '../profile/ProfilePage'
-import PortfolioView from '../portfolio/PortfolioView'
-import ValidatorPerformance from '../validators/ValidatorPerformance'
-import MarketDashboard from '../market/MarketDashboard'
-import TransferHistory from '../transfers/TransferHistory'
-import ContractExplorer from '../contracts/ContractExplorer'
-import NFTGallery from '../nft/NFTGallery'
-import AgentActivity from './AgentActivity'
-import RWATokenization from './RWATokenization'
-import ContractDeployer from './ContractDeployer'
-import AchievementConstellation from '../d3/AchievementConstellation'
-import ChessGame from '../games/ChessGame'
-import { playSound } from '../../utils/sound-effects'
+import { useDashboardStore } from '../../stores/dashboard-store';
+import ProfilePage from '../profile/ProfilePage';
+import PortfolioView from '../portfolio/PortfolioView';
+import ValidatorPerformance from '../validators/ValidatorPerformance';
+import MarketDashboard from '../market/MarketDashboard';
+import TransferHistory from '../transfers/TransferHistory';
+import ContractExplorer from '../contracts/ContractExplorer';
+import NFTGallery from '../nft/NFTGallery';
+import AgentActivity from './AgentActivity';
+import RWATokenization from './RWATokenization';
+import ContractDeployer from './ContractDeployer';
+import AchievementConstellation from '../d3/AchievementConstellation';
+import ChessGame from '../games/ChessGame';
+import { playSound } from '../../utils/sound-effects';
 
 const FEATURES = [
   { id: 'profile', label: 'Profile', icon: '👤', description: 'View progress & badges', color: 'from-sky-500/20' },
@@ -22,63 +22,56 @@ const FEATURES = [
   { id: 'games', label: 'Play', icon: '🎮', description: 'Play Chess & Earn XP', color: 'from-fuchsia-500/20' },
   { id: 'transfers', label: 'Transfers', icon: '📜', description: 'Transaction History', color: 'from-gray-500/20' },
   { id: 'contracts', label: 'Contracts', icon: '📦', description: 'Explore Smart Contracts', color: 'from-orange-500/20' },
-  { id: 'nfts', label: 'NFTs', icon: '🖼️', description: 'Gallery & Collections', color: 'from-pink-500/20' },
-  { id: 'agent', label: 'Agent', icon: '🤖', description: 'AI Activity Logs', color: 'from-cyan-500/20' },
-  { id: 'rwa', label: 'RWA', icon: '📄', description: 'Tokenize Real World Assets', color: 'from-indigo-500/20' },
-  { id: 'deploy', label: 'Deploy', icon: '🚀', description: 'Launch New Contracts', color: 'from-red-500/20' },
-]
+];
 
 export default function Dashboard() {
-  const { activeTab, setActiveTab } = useDashboardStore()
+  const { activeTab, setActiveTab } = useDashboardStore();
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'profile': return <ProfilePage />
-      case 'portfolio': return <PortfolioView />
-      case 'validators': return <ValidatorPerformance showList={true} />
-      case 'market': return <MarketDashboard />
-      case 'transfers': return <TransferHistory />
-      case 'contracts': return <ContractExplorer />
-      case 'nfts': return <NFTGallery />
-      case 'agent': return <AgentActivity />
-      case 'rwa': return <RWATokenization />
-      case 'deploy': return <ContractDeployer />
-      case 'achievements': return <AchievementConstellation />
-      case 'games': return <ChessGame />
-      default: return null
+      case 'profile': return <ProfilePage />;
+      case 'portfolio': return <PortfolioView />;
+      case 'validators': return <ValidatorPerformance showList={true} />;
+      case 'market': return <MarketDashboard />;
+      case 'transfers': return <TransferHistory />;
+      case 'contracts': return <ContractExplorer />;
+      case 'nfts': return <NFTGallery />;
+      case 'agent': return <AgentActivity />;
+      case 'rwa': return <RWATokenization />;
+      case 'deploy': return <ContractDeployer />;
+      case 'achievements': return <AchievementConstellation />;
+      case 'games': return <ChessGame />;
+      default: return null;
     }
-  }
-
-  const BackButton = () => (
-    <button 
-      onClick={() => setActiveTab(null)}
-      className="flex items-center gap-2 text-slate-400 hover:text-white mb-6"
-    >
-      <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">←</div>
-      <span className="font-semibold text-sm">Back to Hub</span>
-    </button>
-  )
+  };
 
   return (
-    <div className="flex flex-col h-full">
-      {activeTab ? (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <BackButton />
-          <div className="animate-fade-in-up">{renderContent()}</div>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto p-4 md:p-8">
+    <div className="w-full h-full flex flex-col items-center justify-center p-4 md:p-8">
+      <div className="w-full max-w-6xl">
+        {activeTab ? (
+          <div className="animate-fade-in-up">
+            <button 
+              onClick={() => setActiveTab(null)}
+              className="flex items-center gap-2 text-slate-400 hover:text-white mb-6"
+            >
+              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center">←</div>
+              <span className="font-semibold text-sm">Back to Hub</span>
+            </button>
+            {renderContent()}
+          </div>
+        ) : (
+          <div className="animate-fade-in">
             <div className="mb-10 text-center">
-                <h2 className="text-3xl font-bold text-white">Compass Hub</h2>
-                <p className="text-slate-400">Your central command for the Sui ecosystem.</p>
+              <h2 className="text-3xl font-bold text-white">Compass Hub</h2>
+              <p className="text-slate-400">Your central command for the Sui ecosystem.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {FEATURES.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as any)}
                   onMouseEnter={() => playSound('hover')}
-                  className={`relative p-6 rounded-2xl border border-slate-800 bg-slate-900/50 hover:bg-slate-800/80 transition-all group text-left`}
+                  className="relative p-6 rounded-2xl border border-slate-800 bg-slate-900/50 hover:bg-slate-800/80 transition-all group text-left"
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.color} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
                   <div className="relative">
@@ -89,8 +82,9 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
-  )
+  );
 }

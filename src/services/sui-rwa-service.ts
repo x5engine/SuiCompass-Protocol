@@ -4,9 +4,10 @@
  */
 
 import { Transaction } from '@mysten/sui/transactions';
+import { CONTRACTS } from '../lib/constants';
 
-// Contract address (will be set after deployment)
-const RWA_PACKAGE_ID = process.env.VITE_RWA_PACKAGE_ID || '0x0';
+// Contract address from constants
+const RWA_PACKAGE_ID = CONTRACTS.RWA_REGISTRY;
 
 export interface RWAMintParams {
     assetType: 'real_estate' | 'invoice' | 'bond';
@@ -23,7 +24,8 @@ export class SuiRWAService {
     static mintRWA(params: RWAMintParams): Transaction {
         const tx = new Transaction();
 
-        const valuationScaled = Math.floor(params.valuation * 1_000_000);
+        // Ensure valuation is an integer (Move expects u64)
+        const valuationScaled = BigInt(Math.floor(params.valuation * 1_000_000));
 
         const functionName = params.assetType === 'real_estate'
             ? 'mint_real_estate'
@@ -45,16 +47,32 @@ export class SuiRWAService {
     }
 
     /**
-     * Transfer RWA token to another address
+     * Update the status of an RWA NFT
      */
-    static transferRWA(tokenId: string, recipient: string): Transaction {
+    static updateRWAStatus(tokenId: string, newStatus: number): Transaction {
         const tx = new Transaction();
 
         tx.moveCall({
-            target: `${RWA_PACKAGE_ID}::rwa_registry::transfer_rwa`,
+            target: `${RWA_PACKAGE_ID}::rwa_registry::update_status`,
             arguments: [
                 tx.object(tokenId),
-                tx.pure.address(recipient),
+                tx.pure.u8(newStatus),
+            ],
+        });
+
+        return tx;
+    }
+
+    /**
+     * Burn (destroy) the RWA NFT
+     */
+    static burnRWA(tokenId: string): Transaction {
+        const tx = new Transaction();
+
+        tx.moveCall({
+            target: `${RWA_PACKAGE_ID}::rwa_registry::burn`,
+            arguments: [
+                tx.object(tokenId),
             ],
         });
 

@@ -1,7 +1,4 @@
 module suicompass::rwa_registry {
-    use sui::object::{Self, UID};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
     use std::string::{Self, String};
     use sui::event;
 
@@ -12,8 +9,11 @@ module suicompass::rwa_registry {
 
     /// RWA Status
     const STATUS_PENDING: u8 = 1;
+    #[allow(unused_const)]
     const STATUS_VERIFIED: u8 = 2;
+    #[allow(unused_const)]
     const STATUS_PAID: u8 = 3;
+    #[allow(unused_const)]
     const STATUS_DEFAULTED: u8 = 4;
 
     /// Error codes
@@ -22,7 +22,7 @@ module suicompass::rwa_registry {
     const E_NOT_AUTHORIZED: u64 = 2;
 
     /// RWA NFT representing a real-world asset
-    struct RWANFT has key, store {
+    public struct RWANFT has key, store {
         id: UID,
         /// Asset type (1=Real Estate, 2=Invoice, 3=Bond)
         asset_type: u8,
@@ -43,7 +43,7 @@ module suicompass::rwa_registry {
     }
 
     /// Event emitted when RWA is minted
-    struct RWAMinted has copy, drop {
+    public struct RWAMinted has copy, drop {
         token_id: address,
         asset_type: u8,
         name: String,
@@ -52,14 +52,14 @@ module suicompass::rwa_registry {
     }
 
     /// Event emitted when status is updated
-    struct RWAStatusUpdated has copy, drop {
+    public struct RWAStatusUpdated has copy, drop {
         token_id: address,
         old_status: u8,
         new_status: u8,
     }
 
     /// Event emitted when RWA is burned
-    struct RWABurned has copy, drop {
+    public struct RWABurned has copy, drop {
         token_id: address,
         name: String,
     }
@@ -130,7 +130,7 @@ module suicompass::rwa_registry {
         assert!(asset_type >= 1 && asset_type <= 3, E_INVALID_ASSET_TYPE);
         assert!(valuation > 0, E_INVALID_VALUATION);
 
-        let issuer = tx_context::sender(ctx);
+        let issuer = ctx.sender();
         let nft = RWANFT {
             id: object::new(ctx),
             asset_type,
@@ -140,7 +140,7 @@ module suicompass::rwa_registry {
             documentation_uri: string::utf8(documentation_uri),
             issuer,
             status: STATUS_PENDING,
-            created_at: tx_context::epoch(ctx),
+            created_at: ctx.epoch(),
         };
 
         let token_id = object::uid_to_address(&nft.id);
@@ -172,7 +172,7 @@ module suicompass::rwa_registry {
         new_status: u8,
         ctx: &mut TxContext
     ) {
-        let sender = tx_context::sender(ctx);
+        let sender = ctx.sender();
         assert!(sender == nft.issuer, E_NOT_AUTHORIZED);
 
         let old_status = nft.status;

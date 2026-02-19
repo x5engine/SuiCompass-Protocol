@@ -1,35 +1,31 @@
-import { useEffect, useState } from 'react'
-import { useGamificationStore } from '../../stores/gamification-store'
+import { Badge, useGamificationStore } from '../../stores/gamification-store';
+import { useEffect } from 'react';
+import { playSound } from '../../utils/sound-effects';
 
 export default function BadgePopup() {
-  const { recentUnlock, clearRecentUnlock } = useGamificationStore()
-  const [visible, setVisible] = useState(false)
+  const { recentUnlock, clearRecentUnlock } = useGamificationStore();
 
   useEffect(() => {
     if (recentUnlock) {
-      setVisible(true)
+      playSound('success');
       const timer = setTimeout(() => {
-        setVisible(false)
-        setTimeout(clearRecentUnlock, 300) // Wait for fade out
-      }, 4000)
-      return () => clearTimeout(timer)
+        clearRecentUnlock();
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  }, [recentUnlock, clearRecentUnlock])
+  }, [recentUnlock, clearRecentUnlock]);
 
-  if (!recentUnlock && !visible) return null
+  if (!recentUnlock) return null;
 
   return (
-    <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 transform ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'}`}>
-      <div className="bg-slate-900/90 border border-yellow-500/50 p-6 rounded-2xl shadow-[0_0_30px_rgba(234,179,8,0.3)] backdrop-blur-xl flex flex-col items-center text-center min-w-[300px]">
-        <div className="text-sm font-bold text-yellow-500 uppercase tracking-widest mb-2 animate-pulse">Badge Unlocked!</div>
-        <div className="text-5xl mb-3 animate-bounce">{recentUnlock?.icon}</div>
-        <h3 className="text-xl font-bold text-white mb-1">{recentUnlock?.name}</h3>
-        <p className="text-sm text-slate-400">{recentUnlock?.description}</p>
-        
-        <div className="mt-4 w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-            <div className="h-full bg-yellow-500 animate-[progress_4s_linear]"></div>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+      <div className="bg-slate-900 border-2 border-cyan-500 rounded-3xl p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(6,182,212,0.5)] transform animate-bounce-in relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent"></div>
+        <div className="text-6xl mb-4 animate-bounce relative z-10">{recentUnlock.icon}</div>
+        <h3 className="text-2xl font-bold text-white mb-2 relative z-10 uppercase tracking-wide">Badge Unlocked!</h3>
+        <h4 className="text-xl font-bold text-cyan-400 mb-2 relative z-10">{recentUnlock.name}</h4>
+        <p className="text-slate-300 relative z-10">{recentUnlock.description}</p>
       </div>
     </div>
-  )
+  );
 }
