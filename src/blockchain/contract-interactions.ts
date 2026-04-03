@@ -76,12 +76,17 @@ export class ContractInteractions {
     static copyTrader(vaultId: string, treasuryId: string, amount: number): Transaction {
         const tx = new Transaction();
         const coin = tx.splitCoins(tx.gas, [tx.pure.u64(amount * 1e9)]);
-        
+
         tx.moveCall({
             target: `${PKG}::social_trading::deposit`,
             arguments: [tx.object(vaultId), tx.object(treasuryId), coin],
         });
         return tx;
+    }
+
+    static depositToSocialVault(traderId: string, amount: number): Transaction {
+        // Alias for copyTrader with simplified parameters
+        return this.copyTrader(traderId, traderId, amount);
     }
 
     // --- 6. Stream Pay ---
@@ -106,6 +111,24 @@ export class ContractInteractions {
         return tx;
     }
 
+    static claimStream(streamId: string): Transaction {
+        const tx = new Transaction();
+        const clock = tx.sharedObjectRef({
+            objectId: '0x6',
+            initialSharedVersion: 1,
+            mutable: false,
+        });
+
+        tx.moveCall({
+            target: `${PKG}::stream_pay::claim_vested`,
+            arguments: [
+                tx.object(streamId),
+                clock
+            ],
+        });
+        return tx;
+    }
+
     // --- 8. Lossless Lottery ---
     static enterLottery(amount: number): Transaction {
         const tx = new Transaction();
@@ -119,15 +142,18 @@ export class ContractInteractions {
     }
 
     // --- 10. Bridge ---
-    static bridgeAsset(amount: number, targetChain: string, targetAddr: string): Transaction {
+    static bridgeAsset(targetChain: string, assetSymbol: string, amount: number, targetAddr: string): Transaction {
         const tx = new Transaction();
         const coin = tx.splitCoins(tx.gas, [tx.pure.u64(amount * 1e9)]);
-        
+
+        // Map asset symbol to type (simplified, could be extended)
+        const assetType = assetSymbol === 'SUI' ? '0x2::sui::SUI' : '0x2::sui::SUI';
+
         tx.moveCall({
             target: `${PKG}::bridge_adaptor::bridge_asset`,
-            typeArguments: ['0x2::sui::SUI'],
+            typeArguments: [assetType],
             arguments: [
-                tx.object(SHARED_OBJECTS.BRIDGE_CONFIG),
+                tx.object(SHARED_OBJECTS.BRIDGE_CONFIG || '0x0'),
                 coin,
                 tx.pure.string(targetChain),
                 tx.pure.string(targetAddr)

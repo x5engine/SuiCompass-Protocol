@@ -68,13 +68,19 @@ export default function SidePanel() {
 
     const handleSuggestionClick = (text: string, type?: string) => {
         playSound('click');
-        
+
         // Navigation Logic based on Contract Type
         if (type === 'portfolio') { navigate('/dashboard'); setActiveTab('portfolio'); }
         else if (type === 'index_fund') { navigate('/market'); }
         else if (type === 'flash_loan') { navigate('/market'); }
+        else if (type === 'prediction_market') { navigate('/games'); }
         else if (type === 'lossless_lottery') { navigate('/games'); }
+        else if (type === 'social_trading') { navigate('/social-trading'); }
+        else if (type === 'stream_pay') { navigate('/stream-payments'); }
+        else if (type === 'bridge_adaptor') { navigate('/bridge'); }
         else if (type === 'reputation_id') { navigate('/profile'); }
+        else if (type === 'derivatives') { navigate('/market'); }
+        else if (type === 'rwa_registry') { navigate('/dashboard'); setActiveTab('rwa'); }
         else {
             // Default behavior: Fill chat input
             const chatInput = document.querySelector('input[type="text"]') as HTMLInputElement;

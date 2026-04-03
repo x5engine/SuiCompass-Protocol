@@ -3,44 +3,184 @@ import { useWallet } from '../../blockchain/WalletProvider';
 import { ContractInteractions } from '../../blockchain/contract-interactions';
 import { playSound } from '../../utils/sound-effects';
 import { showNotification } from '../ui/Notification';
+import { validateAmount } from '../../utils/validation';
+import { useTransactionRateLimit } from '../../hooks/useRateLimit';
 
 export default function MarketPage() {
     const [activeTab, setActiveTab] = useState<'index' | 'flash' | 'options'>('index');
     const { signAndExecute, isConnected } = useWallet();
+    const { checkLimit, canProceed, remainingTime } = useTransactionRateLimit('market');
     const [loading, setLoading] = useState(false);
 
     // Form States
     const [indexAmount, setIndexAmount] = useState('10');
     const [flashAmount, setFlashAmount] = useState('1000');
+    const [validationErrors, setValidationErrors] = useState<{
+        index?: string;
+        flash?: string;
+    }>({});
 
-    const handleTransaction = async (action: () => Promise<any>) => {
+    const buyIndex = async () => {
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, index: undefined }));
+
+        // 1. Check wallet connection
         if (!isConnected) {
-            showNotification({ type: 'error', title: 'Wallet not connected', message: 'Please connect your wallet first.' });
+            showNotification({
+                type: 'error',
+                title: 'Wallet Not Connected',
+                message: 'Please connect your wallet first.'
+            });
             return;
         }
+
+        // 2. Validate amount
+        const amountValidation = validateAmount(indexAmount, {
+            min: 1,
+            max: 100000,
+            fieldName: 'Index Fund Amount'
+        });
+
+        if (!amountValidation.valid) {
+            setValidationErrors({ index: amountValidation.error });
+            showNotification({
+                type: 'error',
+                title: 'Invalid Amount',
+                message: amountValidation.error!
+            });
+            return;
+        }
+
+        // 3. Check rate limit
+        if (!checkLimit()) {
+            showNotification({
+                type: 'warning',
+                title: 'Rate Limit',
+                message: `Please wait ${remainingTime} seconds before your next transaction.`
+            });
+            return;
+        }
+
         setLoading(true);
         playSound('click');
+
         try {
-            await action();
+            const tx = ContractInteractions.buyIndexFund(
+                amountValidation.sanitized as number,
+                0,
+                '0x_MOCK_USDC'
+            );
+            await signAndExecute(tx);
             playSound('success');
-            showNotification({ type: 'success', title: 'Transaction Successful', message: 'The blockchain has accepted your request.' });
-        } catch (error) {
-            console.error(error);
-            showNotification({ type: 'error', title: 'Transaction Failed', message: 'See console for details.' });
+            showNotification({
+                type: 'success',
+                title: 'Index Fund Purchased!',
+                message: `Bought ${amountValidation.sanitized} SUI worth of SUIIDX.`
+            });
+            setIndexAmount('10');
+            setValidationErrors(prev => ({ ...prev, index: undefined }));
+        } catch (error: any) {
+            console.error('Index fund error:', error);
+
+            let errorMessage = 'Failed to buy index fund.';
+            if (error.message?.includes('Insufficient')) {
+                errorMessage = 'Insufficient balance for purchase plus gas fees.';
+            } else if (error.message?.includes('User rejected')) {
+                return; // Silent
+            } else if (error.message?.includes('gas')) {
+                errorMessage = 'Insufficient gas fees.';
+            }
+
+            showNotification({
+                type: 'error',
+                title: 'Transaction Failed',
+                message: errorMessage
+            });
         } finally {
             setLoading(false);
         }
     };
 
-    const buyIndex = () => handleTransaction(async () => {
-        const tx = ContractInteractions.buyIndexFund(Number(indexAmount), 0, '0x_MOCK_USDC'); // Mock USDC ID
-        await signAndExecute(tx);
-    });
+    const executeFlash = async () => {
+        // Clear previous errors
+        setValidationErrors(prev => ({ ...prev, flash: undefined }));
 
-    const executeFlash = () => handleTransaction(async () => {
-        const tx = ContractInteractions.executeFlashArbitrage(Number(flashAmount));
-        await signAndExecute(tx);
-    });
+        // 1. Check wallet connection
+        if (!isConnected) {
+            showNotification({
+                type: 'error',
+                title: 'Wallet Not Connected',
+                message: 'Please connect your wallet first.'
+            });
+            return;
+        }
+
+        // 2. Validate amount
+        const amountValidation = validateAmount(flashAmount, {
+            min: 100,
+            max: 100000,
+            fieldName: 'Flash Loan Amount'
+        });
+
+        if (!amountValidation.valid) {
+            setValidationErrors({ flash: amountValidation.error });
+            showNotification({
+                type: 'error',
+                title: 'Invalid Amount',
+                message: amountValidation.error!
+            });
+            return;
+        }
+
+        // 3. Check rate limit
+        if (!checkLimit()) {
+            showNotification({
+                type: 'warning',
+                title: 'Rate Limit',
+                message: `Please wait ${remainingTime} seconds before your next transaction.`
+            });
+            return;
+        }
+
+        setLoading(true);
+        playSound('click');
+
+        try {
+            const tx = ContractInteractions.executeFlashArbitrage(
+                amountValidation.sanitized as number
+            );
+            await signAndExecute(tx);
+            playSound('success');
+            showNotification({
+                type: 'success',
+                title: 'Flash Arbitrage Executed!',
+                message: `Executed flash loan with ${amountValidation.sanitized} SUI.`
+            });
+            setFlashAmount('1000');
+            setValidationErrors(prev => ({ ...prev, flash: undefined }));
+        } catch (error: any) {
+            console.error('Flash loan error:', error);
+
+            let errorMessage = 'Failed to execute flash arbitrage.';
+            if (error.message?.includes('Insufficient')) {
+                errorMessage = 'Insufficient gas fees for flash loan.';
+            } else if (error.message?.includes('User rejected')) {
+                return; // Silent
+            } else if (error.message?.includes('gas')) {
+                errorMessage = 'Insufficient gas fees.';
+            } else if (error.message?.includes('No arbitrage')) {
+                errorMessage = 'No profitable arbitrage opportunity found.';
+            }
+
+            showNotification({
+                type: 'error',
+                title: 'Transaction Failed',
+                message: errorMessage
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8 animate-fade-in">
@@ -80,21 +220,39 @@ export default function MarketPage() {
                                 Single-click exposure to a diversified basket of top Sui assets. 
                                 Currently tracks: <strong>50% SUI, 30% USDC, 20% CETUS</strong>.
                             </p>
-                            <div className="flex gap-4">
-                                <input 
-                                    type="number" 
-                                    value={indexAmount}
-                                    onChange={e => setIndexAmount(e.target.value)}
-                                    className="bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white w-full"
-                                    placeholder="Amount SUI"
-                                />
-                                <button 
-                                    onClick={buyIndex}
-                                    disabled={loading}
-                                    className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-8 py-3 rounded-xl transition-all whitespace-nowrap"
-                                >
-                                    {loading ? 'Buying...' : 'Buy Index'}
-                                </button>
+                            <div className="space-y-2">
+                                <div className="flex gap-4">
+                                    <input
+                                        type="number"
+                                        value={indexAmount}
+                                        onChange={e => {
+                                            setIndexAmount(e.target.value);
+                                            setValidationErrors(prev => ({ ...prev, index: undefined }));
+                                        }}
+                                        className={`bg-slate-950 border rounded-xl px-4 py-3 text-white w-full ${
+                                            validationErrors.index
+                                                ? 'border-rose-500'
+                                                : 'border-slate-700'
+                                        }`}
+                                        placeholder="Amount SUI"
+                                        disabled={loading}
+                                    />
+                                    <button
+                                        onClick={buyIndex}
+                                        disabled={loading || !canProceed || !isConnected}
+                                        className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-8 py-3 rounded-xl transition-all whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title={!canProceed ? `Wait ${remainingTime}s` : ''}
+                                    >
+                                        {loading
+                                            ? 'Buying...'
+                                            : !canProceed
+                                            ? `Wait ${remainingTime}s`
+                                            : 'Buy Index'}
+                                    </button>
+                                </div>
+                                {validationErrors.index && (
+                                    <p className="text-xs text-rose-400">⚠️ {validationErrors.index}</p>
+                                )}
                             </div>
                         </div>
                         <div className="space-y-4">
@@ -133,13 +291,21 @@ export default function MarketPage() {
                                 <div className="flex justify-between"><span>Est. Profit:</span> <span className="text-emerald-400">+0.85%</span></div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={executeFlash}
-                                disabled={loading}
-                                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-amber-600/20"
+                                disabled={loading || !canProceed || !isConnected}
+                                className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-amber-600/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={!canProceed ? `Wait ${remainingTime}s` : ''}
                             >
-                                {loading ? 'Executing Swaps...' : '⚡ Execute Arbitrage Strategy'}
+                                {loading
+                                    ? 'Executing Swaps...'
+                                    : !canProceed
+                                    ? `Wait ${remainingTime}s`
+                                    : '⚡ Execute Arbitrage Strategy'}
                             </button>
+                            {validationErrors.flash && (
+                                <p className="text-xs text-rose-400 mt-2">⚠️ {validationErrors.flash}</p>
+                            )}
                             <p className="text-xs text-center text-slate-500">
                                 The transaction will revert if the trade is not profitable. You only pay gas.
                             </p>
@@ -148,13 +314,102 @@ export default function MarketPage() {
                 )}
 
                 {activeTab === 'options' && (
-                    <div className="text-center py-20">
-                        <div className="text-6xl mb-6 opacity-50">📉</div>
-                        <h2 className="text-2xl font-bold text-white mb-2">Derivatives Market</h2>
-                        <p className="text-slate-400 max-w-md mx-auto">
-                            Hedging contracts for your RWA NFTs are coming soon.
-                            <br/>Current Status: <span className="text-cyan-400 font-mono">Contract Deployed</span>
-                        </p>
+                    <div className="space-y-8">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Call Option */}
+                            <div className="bg-gradient-to-br from-emerald-900/20 to-slate-900 border border-emerald-500/30 rounded-2xl p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white mb-1">CALL Option</h3>
+                                        <p className="text-sm text-slate-400">RWA Real Estate NFT #1234</p>
+                                    </div>
+                                    <span className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold">
+                                        BULLISH
+                                    </span>
+                                </div>
+
+                                <div className="space-y-3 mb-6">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Strike Price</span>
+                                        <span className="text-white font-bold">$100,000</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Current Price</span>
+                                        <span className="text-white font-bold">$95,000</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Premium</span>
+                                        <span className="text-cyan-400 font-bold">250 SUI</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Expiry</span>
+                                        <span className="text-white">30 days</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl transition-all"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Processing...' : 'Buy Call Option'}
+                                </button>
+                            </div>
+
+                            {/* Put Option */}
+                            <div className="bg-gradient-to-br from-rose-900/20 to-slate-900 border border-rose-500/30 rounded-2xl p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white mb-1">PUT Option</h3>
+                                        <p className="text-sm text-slate-400">RWA Corporate Bond #5678</p>
+                                    </div>
+                                    <span className="bg-rose-500/20 text-rose-400 px-3 py-1 rounded-full text-xs font-bold">
+                                        BEARISH
+                                    </span>
+                                </div>
+
+                                <div className="space-y-3 mb-6">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Strike Price</span>
+                                        <span className="text-white font-bold">$50,000</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Current Price</span>
+                                        <span className="text-white font-bold">$52,000</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Premium</span>
+                                        <span className="text-cyan-400 font-bold">150 SUI</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400">Expiry</span>
+                                        <span className="text-white">60 days</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-3 rounded-xl transition-all"
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Processing...' : 'Buy Put Option'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6">
+                            <div className="flex gap-4">
+                                <div className="text-3xl">📊</div>
+                                <div>
+                                    <h3 className="font-bold text-white mb-2">How Options Work</h3>
+                                    <ul className="text-sm text-slate-300 space-y-1">
+                                        <li>• <strong>Call Option:</strong> Right to buy the asset at strike price (profit if price goes up)</li>
+                                        <li>• <strong>Put Option:</strong> Right to sell the asset at strike price (profit if price goes down)</li>
+                                        <li>• <strong>Premium:</strong> The cost to purchase the option (non-refundable)</li>
+                                        <li>• <strong>Expiry:</strong> Options become worthless after expiration date</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

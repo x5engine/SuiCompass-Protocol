@@ -10,11 +10,14 @@ import { showNotification } from '../ui/Notification'
 import DocumentUpload from './DocumentUpload'
 import RiskAuditResults from './RiskAuditResults'
 import type { TokenizationRequest, RiskAuditResult, TokenizationResult } from '../../types/rwa-audit'
+import { validateAmount } from '../../utils/validation'
+import { useTransactionRateLimit } from '../../hooks/useRateLimit'
 
 type Step = 'upload' | 'metadata' | 'audit' | 'tokenize' | 'success'
 
 export default function RWATokenization() {
   const { publicKey, isConnected, signAndExecute } = useWallet()
+  const { checkLimit, canProceed, remainingTime } = useTransactionRateLimit('rwa-tokenization')
   const [step, setStep] = useState<Step>('upload')
   const [loading, setLoading] = useState(false)
   const [documentFile, setDocumentFile] = useState<File | null>(null)
@@ -29,6 +32,7 @@ export default function RWATokenization() {
   })
   const [auditResult, setAuditResult] = useState<RiskAuditResult | null>(null)
   const [tokenizationResult, setTokenizationResult] = useState<TokenizationResult | null>(null)
+  const [validationError, setValidationError] = useState<string>('')
 
   if (!isConnected || !publicKey) {
     return (
@@ -50,12 +54,32 @@ export default function RWATokenization() {
   }
 
   const handleMetadataSubmit = async () => {
-    // Validate
+    // Clear previous errors
+    setValidationError('')
+
+    // 1. Validate amount with our validation utility
+    const amountValidation = validateAmount(metadata.amount, {
+      min: 0.01,
+      max: 100000000,
+      fieldName: 'Asset Amount'
+    })
+
+    if (!amountValidation.valid) {
+      setValidationError(amountValidation.error!)
+      showNotification({
+        type: 'error',
+        title: 'Invalid Amount',
+        message: amountValidation.error!
+      })
+      return
+    }
+
+    // 2. Validate with service
     const request: TokenizationRequest = {
       metadata: {
         assetType: metadata.assetType,
         issuer: metadata.issuer || publicKey,
-        amount: parseFloat(metadata.amount),
+        amount: amountValidation.sanitized as number,
         currency: metadata.currency,
         dueDate: metadata.dueDate,
         status: 'pending',
@@ -114,6 +138,42 @@ export default function RWATokenization() {
   const handleProceedToTokenize = async () => {
     if (!tokenizationResult?.ipfsHash || !auditResult) return;
 
+    // 1. Check wallet connection
+    if (!isConnected) {
+      showNotification({
+        type: 'error',
+        title: 'Wallet Not Connected',
+        message: 'Please connect your wallet first.'
+      });
+      return;
+    }
+
+    // 2. Validate amount again before tokenization
+    const amountValidation = validateAmount(metadata.amount, {
+      min: 0.01,
+      max: 100000000,
+      fieldName: 'Asset Amount'
+    });
+
+    if (!amountValidation.valid) {
+      showNotification({
+        type: 'error',
+        title: 'Invalid Amount',
+        message: amountValidation.error!
+      });
+      return;
+    }
+
+    // 3. Check rate limit
+    if (!checkLimit()) {
+      showNotification({
+        type: 'warning',
+        title: 'Rate Limit',
+        message: `Please wait ${remainingTime} seconds before your next transaction.`
+      });
+      return;
+    }
+
     // Use the package ID from environment or default
     const PACKAGE_ID = import.meta.env.VITE_RWA_PACKAGE_ID || '0x0';
 
@@ -133,7 +193,7 @@ export default function RWATokenization() {
         PACKAGE_ID,
         {
           ...metadata,
-          amount: parseFloat(metadata.amount),
+          amount: amountValidation.sanitized as number,
           documentHash: tokenizationResult.ipfsHash,
           riskScore: auditResult.riskScore,
           createdAt: new Date().toISOString(),
